@@ -1,4 +1,9 @@
+% Define the MADE processing pipeline as a function
 function [] = MADE_pipeline(dataset, subjects, session)
+
+% dataset: str like 'thrive-dataset'
+% subjects: str like '3000001/3000002/3000003/3000004'
+% session: str like 's1_r1'
 
 %%to Run on FIU HPC%
 % create a local cluster object
@@ -85,7 +90,8 @@ addpath(genpath('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standa
 rmpath(['/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeglab13_4_4b' filesep 'functions' filesep 'octavefunc' filesep 'signal'])
 
 % 1. Enter the path of the folder that has the raw data to be analyzed
-rawdata_location_parent = strcat(main_dir, '/sourcedata/raw/', session, '/eeg');
+%rawdata_location_parent = strcat(main_dir, '/sourcedata/raw/', session, '/eeg');
+rawdata_location_parent = strcat(main_dir, '/sourcedata/checked'); % updated to worlk with checked data only
 rawdata_location_parent = char(rawdata_location_parent);
 
 % 2. Enter the path of the channel location file
@@ -93,27 +99,36 @@ rawdata_location_parent = char(rawdata_location_parent);
 %channel_locations = loadbvef(strcat(main_dir, '/code/eeg_preprocessing/chan_locs_files/electrode_locs_files/CACS-128-X7-FIXED-64only.bvef'));
 channel_locations = loadbvef('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeg_preprocessing/chan_locs_files/electrode_locs_files/CACS-128-X7-FIXED-64only.bvef');
 
-%need to modify for social vs nonsocial
-
 % STIMULUS TRIGGERS
-% passage text appears on-screen: 11
-% passage text disappears (participant proceeded to the next screen): 10
-% challenge text appears on-screen: 21
-%
+% practice congruent right: 1
+% practice congruent left: 2
+% practice incongruent right: 3
+% practice incongruent left: 4
+% non-social congruent right: 41
+% non-social congruent left: 42
+% non-social incongruent right: 43
+% non-social incongruent left: 44
+% social congruent right: 51
+% social congruent left: 52
+% social incongruent right: 53
+% social incongruent left: 54
+
 % RESPONSE TRIGGERS
-% error response to challenge question: 30
-% correct response to challenge question: 31
+% correct: 11
+% error: 12
+% technically correct response, but not the first response made: 21
+% technically error response, but not the first response made: 22
 
 stimulus_markers = {'S  1', 'S  2', 'S  3', 'S  4', 'S 41', 'S 42', 'S 43', ...
-    'S 44', 'S 51', 'S 52', 'S 53', 'S 54'};      % enter the stimulus markers that need to be adjusted for time offset
-response_markers = {};       % enter the response makers that need to be adjusted for time offset
+    'S 44', 'S 51', 'S 52', 'S 53', 'S 54'}; % enter the stimulus markers that need to be adjusted for time offset % fine only if we dont adjust for onset, not even used further in the code
+response_markers = {}; % enter the response makers that need to be adjusted for time offset % same as line above !!!
 
 % 5. Do you want to down sample the data?
 down_sample = 1; % 0 = NO (no down sampling), 1 = YES (down sampling)
 sampling_rate = 1000; % set sampling rate (in Hz), if you want to down sample
 
 % 6. Do you want to delete the outer layer of the channels? (Rationale has been described in MADE manuscript)
-%    This fnction can also be used to down sample electrodes. For example, if EEG was recorded with 128 channels but you would
+%    This function can also be used to down sample electrodes. For example, if EEG was recorded with 128 channels but you would
 %    like to analyse only 64 channels, you can assign the list of channnels to be excluded in the 'outerlayer_channel' variable.
 %    Can also use this to remove ocular channels if they are in non-standard
 %    locations
@@ -177,7 +192,8 @@ subjects_to_process = strcat("sub-", subjects_to_process);
 parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         try
         subjStart = tic;
-        rawdata_location = fullfile(rawdata_location_parent, subjects_to_process(file_locater_counter));
+        %rawdata_location = fullfile(rawdata_location_parent, subjects_to_process(file_locater_counter));
+        rawdata_location = fullfile(rawdata_location_parent, subjects_to_process(file_locater_counter), session, 'eeg'); % updated to work with checked data
         rawdata_location = char(rawdata_location);
         if ~isdir(rawdata_location)
             warning(['Cannot find ' char(subjects_to_process(file_locater_counter)) ' folder in ' rawdata_location_parent ', skipping.']);
@@ -230,8 +246,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             corrected=0
         end
 
-
-
         %% Check whether EEGLAB and all necessary plugins are in Matlab path.
         if exist('eeglab','file')==0
             error(['Please make sure EEGLAB is on your Matlab path. Please see EEGLAB' ...
@@ -269,7 +283,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         total_epochs_after_artifact_rejection=[];
         total_channels_interpolated=[]; % total_channels_interpolated=faster_bad_channels+ica_preparation_bad_channels
 
-
         %% Loop over all data files
 
         % switch to output directory
@@ -305,9 +318,9 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 desc = '';
             end
 
-            %% Initialize EEG structurem, output variables, and report table
+            %% Initialize EEG structure, output variables, and report table
             EEG=[]; %initialize eeg structure
-            report_table = []; %report table that will be created and writen to disk (appended) after processing completes for this participant
+            report_table = []; %report table that will be created and written to disk (appended) after processing completes for this participant
             reference_used_for_faster=[]; % reference channel used for running faster to identify bad channel/s
             faster_bad_channels=[]; % number of bad channel/s identified by faster
             ica_preparation_bad_channels=[]; % number of bad channel/s due to channel/s exceeding xx% of artifacted epochs
@@ -317,7 +330,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             total_epochs_before_artifact_rejection=[];
             total_epochs_after_artifact_rejection=[];
             total_channels_interpolated=[]; % total_channels_interpolated=faster_bad_channels+ica_preparation_bad_channels
-
 
             fprintf('\n\n\n*** Processing subject %d (%s) ***\n\n\n', subject, datafile_names{subject});
 
@@ -348,8 +360,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             EEG = eeg_checkset( EEG );
             %[ALLEEG EEG CURRENTSET] = eeg_store(ALLEEG, EEG, CURRENTSET);
 
-
-
             %add in ref channels
             origData = EEG.data;
             [origData_NumRows, origData_NumCols] = size(origData);
@@ -366,8 +376,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             %%%%
             EEG = eeg_checkset( EEG );
             %[ALLEEG EEG CURRENTSET] = eeg_store(ALLEEG, EEG, CURRENTSET);
-
-
 
             EEG = eeg_checkset( EEG );
             %[ALLEEG EEG CURRENTSET] = eeg_store(ALLEEG, EEG, CURRENTSET);
@@ -391,7 +399,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                     EEG.event(atm).type = num2str(EEG.event(atm).type);
                 end
             end
-
 
             %% STEP 5: Delete outer layer of channels
             chans_labels=cell(1,EEG.nbchan);
@@ -703,7 +710,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             EEG = eeg_checkset(EEG);
             EEG = pop_select(EEG,'nochannel', ica_prep_badChans);
 
-            % Transfer the ICA weights of the copied dataset to the original dataset
+            % Transfer the ICA weights of the copied dataset to the original dataset (the weights are used by ADJUST)
             EEG.icawinv=ICA_WINV;
             EEG.icasphere=ICA_SPHERE;
             EEG.icaweights=ICA_WEIGHTS;
@@ -722,8 +729,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 badICs = adjusted_ADJUST(EEG_copy, [[output_location filesep] strrep(datafile_names{subject}, ext, '_adjust_report')]);
             end
             close all;
-
-
 
             % Mark the bad ICs found by ADJUST
             for ic=1:length(badICs)
@@ -751,8 +756,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             %Ran up to here....
 
             %no manual review/selection of ica artifact performed...
-
-
 
             %% STEP 11: Remove artifacted ICA components from data
             all_bad_ICs=0;
@@ -932,15 +935,12 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 end
             end % end of voltage threshold rejection if statement
 
-
             %     %save data here for training purposes only (usually do not save here)
             %     %only doing this to allow for skipping the full run of ica
             %     EEG = pop_saveset(EEG, 'filename', strrep(datafile_names{subject}, ext, '_processed_data_immediate.set'),'filepath', [output_location filesep 'processed_data' filesep ]); % save .set format
             %     %load data here for training purposes only (usually do not save here)
             %     %only doing this to allow for skipping the full run of ica
             %     EEG = pop_loadset( 'filename', strrep(datafile_names{subject}, ext, '_processed_data_immediate.set'), 'filepath', [output_location filesep 'processed_data' filesep]);
-
-
 
             % if all epochs are found bad during artifact rejection
             if all_bad_epochs==1
@@ -993,8 +993,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 parsave([[output_location filesep ] strcat(subj,'_',task,'_processed_data_',sess,desc,'.mat')], EEG); % save .mat format
             end
 
-
-
             filtered_filename = [[output_location filesep ] strcat(subj,'_',task,'_filtered_data_',sess,desc)];
             ica_filename = [[output_location filesep ] strcat(subj,'_',task,'_ica_data_',sess,desc)];
             processed_filename = [[output_location filesep ] strcat(subj,'_',task,'_processed_data_',sess,desc)];
@@ -1021,7 +1019,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 end
             end
 
-
             %% create, write/append table on each iteration of loop
 
             %Create the report table for all the data files with relevant preprocessing outputs.
@@ -1037,16 +1034,12 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             writetable(report_table, [output_report_path '.csv'], "WriteMode", "append");
             % final_report_table = vertcat(final_report_table, report_table);
 
-
         end % end of subject loop
 
         %writetable(final_report_table, [output_location filesep 'MADE_preprocessing_report.csv']);
         subjEnd = toc(subjStart);
         fprintf('MADE pipeline completed for subject %s in %d hours %.3f minutes, continuing.\n', subjects_to_process(file_locater_counter), floor(subjEnd/3600), rem(subjEnd,3600)/60);
         diary off
-
-
-
 
         catch
             fprintf('ERROR: failed for subject %s, look at log in %s/MADE_logfiles for details, continuing.\n', subjects_to_process(file_locater_counter), output_location);
@@ -1059,10 +1052,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             writetable(report_table, [output_report_path '_ERROR_incomplete.csv'], "WriteMode", "append");
         end
 
-
 end
-
-
 
 end
 
