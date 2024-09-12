@@ -119,9 +119,14 @@ channel_locations = loadbvef('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pi
 % technically correct response, but not the first response made: 21
 % technically error response, but not the first response made: 22
 
+% 4. Do your data need correction for anti-aliasing filter and/or task related time offset?
+adjust_time_offset = 1; % 0 = NO (no correction), 1 = YES (correct time offset)
+
 stimulus_markers = {'S  1', 'S  2', 'S  3', 'S  4', 'S 41', 'S 42', 'S 43', ...
     'S 44', 'S 51', 'S 52', 'S 53', 'S 54'}; % enter the stimulus markers that need to be adjusted for time offset % fine only if we dont adjust for onset, not even used further in the code
 response_markers = {}; % enter the response makers that need to be adjusted for time offset % same as line above !!!
+stim_offset_list = [11.46, 12, 12.77, 12.32, 10.91, 10.44]; % results of all conducted timings tests for sys1 & sys2
+stimulus_timeoffset = round(mean(stim_offset_list)); % stimulus related time offset (in milliseconds). 0 = No time offset
 
 % 5. Do you want to down sample the data?
 down_sample = 1; % 0 = NO (no down sampling), 1 = YES (down sampling)
@@ -398,6 +403,36 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 if isnumeric(EEG.event(atm).type)
                     EEG.event(atm).type = num2str(EEG.event(atm).type);
                 end
+            end
+
+            %% STEP 3: Adjust anti-aliasing and task related time offset
+            if adjust_time_offset==1
+            %    %%%%%% adjust anti-aliasing filter time offset
+            %    if filter_timeoffset~=0
+            %        for aafto=1:length(EEG.event)
+            %            EEG.event(aafto).latency=EEG.event(aafto).latency+(filter_timeoffset/1000)*EEG.srate;
+            %        end
+            %    end
+                % adjust stimulus time offset
+                if stimulus_timeoffset~=0
+                    for sto=1:length(EEG.event)
+                        for sm=1:length(stimulus_markers)
+                            if strcmp(EEG.event(sto).type, stimulus_markers{sm})
+                                EEG.event(sto).latency=EEG.event(sto).latency+(stimulus_timeoffset/1000)*EEG.srate;
+                            end
+                        end
+                    end
+                end
+            %    % adjust response time offset
+            %    if response_timeoffset~=0
+            %        for rto=1:length(EEG.event)
+            %            for rm=1:length(response_markers)
+            %                if strcmp(EEG.event(rto).type, response_markers{rm})
+            %                    EEG.event(rto).latency=EEG.event(rto).latency-(response_timeoffset/1000)*EEG.srate;
+            %                end
+            %            end
+            %        end
+            %    end
             end
 
             %% STEP 5: Delete outer layer of channels
