@@ -71,6 +71,7 @@ for sub in subjects:
     if num_files != 3:
         processing_log["success"].append(0)
         print("sub-{} has a deviation in psychopy data ({} files), skipping ...".format(sub, num_files))
+        [processing_log[i].append(np.nan) for i in list(processing_log.keys())[2:]]
         pass
     else:
         print("Processing sub-{}...".format(sub))
