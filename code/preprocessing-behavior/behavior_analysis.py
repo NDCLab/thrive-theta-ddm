@@ -81,7 +81,7 @@ for sub in subjects:
         filename = glob.glob(pattern)
         data = pd.read_csv(filename[0])
         start_index = data["task_blockText.started"].first_valid_index()
-        data = data.iloc[start_index:, :].dropna(subset = "middleStim")
+        data = data.iloc[start_index:, :].dropna(subset = ["middleStim"])
         data = data[data["conditionText"].isin(["Observed", "Alone"])].reset_index(drop=True)
         processing_log["n_trials"].append(len(data))
         assert (len(data) == n_blocks * n_trials), "Check your data length!"

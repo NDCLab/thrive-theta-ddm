@@ -1,20 +1,21 @@
 #!/bin/bash
-#SBATCH --job-name=MADE_pipeline         # create a short name for your job
+#SBATCH --job-name=thrive-behavior         # create a short name for your job
 #SBATCH --nodes=1                # node count
 #SBATCH --ntasks=1               # total number of tasks across all nodes
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=10
 #SBATCH --time=24:00:00          # total run time limit (HH:MM:SS)
 #SBATCH --mem=20G
-#SBATCH --partition=highmem1
-#SBATCH --qos=highmem1
-#SBATCH --account=iacc_gbuzzell
+######SBATCH --partition=highmem1
+#####SBATCH --qos=highmem1
+#####SBATCH --account=iacc_gbuzzell
 #SBATCH --output=%x-%j.out
 #SBATCH --mail-type=end          # send email when job ends
 #SBATCH --mail-user=fzaki001@fiu.edu
 
-/home/data/NDClab/tools/containers/python-3.8/python-3.8.simg
 
-python3 behavior_analysis.py
+####conda init
+conda activate /home/fzaki001/.conda/envs/thrive-env
+conda run -n thrive-env python behavior_analysis.py
 
 pwd; hostname; date
 echo "flurm cpus per task: $SLURM_CPUS_PER_TASK"
