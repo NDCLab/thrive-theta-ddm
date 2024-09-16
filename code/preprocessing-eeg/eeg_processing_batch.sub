@@ -1,0 +1,50 @@
+#!/bin/bash
+#SBATCH --job-name=MADE_pipeline         # create a short name for your job
+#SBATCH --nodes=1                # node count
+#SBATCH --ntasks=1               # total number of tasks across all nodes
+#SBATCH --cpus-per-task=1
+#SBATCH --time=24:00:00          # total run time limit (HH:MM:SS)
+#SBATCH --mem=20G
+#SBATCH --partition=highmem1
+#SBATCH --qos=highmem1
+#SBATCH --account=iacc_gbuzzell
+#SBATCH --output=%x-%j.out
+
+module load matlab-2021b
+
+pwd; hostname; date
+echo "flurm cpus per task: $SLURM_CPUS_PER_TASK"
+printenv
+
+####SBATCH --mail-type=end          # send email when job ends
+####SBATCH --mail-user=khoss005@fiu.edu
+
+dataset="thrive-dataset"
+session="s1_r1"
+
+sing_image="/home/data/NDClab/tools/instruments/containers/singularity/inst-container.simg"
+
+#subjects_to_process=$(python3 subjects_yet_to_process.py $dataset $session)
+#subjects_to_process=$(singularity exec $sing_image python3 subjects_yet_to_process.py $dataset $session) # use instruments container for pandas instead of miniconda
+#subjects_to_process="3000012/3000015" #test
+subjects_to_process="3000045"
+#subjects_to_process="3000050"
+
+#for subject in ${subjects_to_process}
+#    do
+#    matlab -nodisplay -nosplash -r "MADE_pipeline $dataset $subject $session"
+#done
+
+matlab -nodisplay -nosplash -r "MADE_pipeline $dataset $subjects_to_process $session"
+
+#errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")
+errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")
+if [[ -z ${errors} ]]; then
+    echo "EEG preprocessing on subjects $subjects_to_process complete."
+else
+    echo "EEG preprocessing on subjects $subjects_to_process exited with errors: ${errors}"
+fi
+
+singularity exec $sing_image python3 update-tracker-postMADE.py $dataset $session
+
+echo "updated tracker"
