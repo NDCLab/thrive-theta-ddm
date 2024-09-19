@@ -10,9 +10,18 @@ function [] = MADE_pipeline(dataset, subjects, session)
 cluster = parcluster('local');
 
 % start matlabpool with max workers set in the slurm file
-%parpool(cluster, str2num(getenv('SLURM_CPUS_PER_TASK'))) % this should be same as --cpus-per-task
-workersAvailable = maxNumCompThreads;
-parpool(cluster, workersAvailable)
+parpool(cluster, str2num(getenv('SLURM_CPUS_PER_TASK'))) % this should be same as --cpus-per-task
+%workersAvailable = maxNumCompThreads;
+%parpool(cluster, workersAvailable)
+
+%temp test code; remove
+pool = gcp('nocreate');  % Get the current parallel pool without creating a new one
+if isempty(pool)
+    disp('No parallel pool is currently running.');
+else
+    disp(['Parallel pool with ', num2str(pool.NumWorkers), ' workers is running.']);
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This script was initially edited by George Buzzell for the NDC Lab EEG
@@ -320,7 +329,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 end
             else
                 [subj, task, sess, ext] = filename_re{1}{:};
-                desc = '';
+                output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess];
             end
 
             %% Initialize EEG structure, output variables, and report table
