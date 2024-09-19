@@ -329,6 +329,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 end
             else
                 [subj, task, sess, ext] = filename_re{1}{:};
+		desc = '';
                 output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess];
             end
 
