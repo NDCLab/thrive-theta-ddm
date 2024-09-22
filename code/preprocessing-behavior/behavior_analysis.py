@@ -43,32 +43,32 @@ n_trials = 40
 valid_rt_thresh = 0.150
 
 sub_folders = [i for i in os.listdir(input_dataset_path + data_path) if i.startswith("sub-")]
-subjects = [re.findall(r'\d+', item)[0] for item in sub_folders]
+subjects = sorted([re.findall(r'\d+', item)[0] for item in sub_folders])
 
 processing_log = dict()
+summary_columns = [
+            "n_trials", "invalid_rt_percent", "skipped_percent",
+            "acc", "acc_con", "acc_incon", "rt_con", "rt_incon", "rt_corr", "rt_err",
+            "pes", "pea", "peri_acc", "peri_rt", "6_or_more_err",
+            ]
 processing_log["sub"] = []
 processing_log["success"] = []
 processing_log["n_trials"] = []
-processing_log["invalid_rt_percent"] = []
-processing_log["n_skipped_percent"] = []
-processing_log["acc"] = []
-processing_log["acc_con"] = []
-processing_log["acc_incon"] = []
-processing_log["rt_con"] = []
-processing_log["rt_incon"] = []
-processing_log["rt_corr"] = []
-processing_log["rt_err"] = []
-processing_log["pes"] = []
-processing_log["peri"] = []
 
+for condition in [0, 1]:
+    if condition == 0:
+        prefix = "_nonsoc"
+    elif condition == 1:
+        prefix = "_soc"
+    for colname in summary_columns:
+        processing_log[colname + prefix] = []
 
 for sub in subjects:
-    # start = time.time()
     processing_log["sub"].append(sub)    
     subject_folder = (input_dataset_path + data_path + "sub-" + sub + os.sep + sub_path)
     num_files = len(os.listdir(subject_folder))
     
-    if num_files != 3:
+    if (num_files != 3) and (sub not in ["3000124", "3000008", "3000014"]):
         processing_log["success"].append(0)
         print("sub-{} has a deviation in psychopy data ({} files), skipping ...".format(sub, num_files))
         [processing_log[i].append(np.nan) for i in list(processing_log.keys())[2:]]
@@ -77,15 +77,15 @@ for sub in subjects:
         print("Processing sub-{}...".format(sub))
         processing_log["success"].append(1)
         
-        pattern = "{}sub-{}*.csv".format(subject_folder, sub)
+        pattern = "{}sub-{}_arrow-alert-v1-*_psychopy_s1_r1_e1.csv".format(subject_folder, sub)
         filename = glob.glob(pattern)
         data = pd.read_csv(filename[0])
         start_index = data["task_blockText.started"].first_valid_index()
-        data = data.iloc[start_index:, :].dropna(subset = ["middleStim"])
+        data = data.iloc[start_index:, :].dropna(subset = "middleStim")
         data = data[data["conditionText"].isin(["Observed", "Alone"])].reset_index(drop=True)
-        processing_log["n_trials"].append(len(data))
         assert (len(data) == n_blocks * n_trials), "Check your data length!"
-
+        processing_log["n_trials"].append(len(data))
+        
         trial_data = data[[
             "target",
             "congruent",
@@ -133,7 +133,6 @@ for sub in subjects:
                                     ]
         trial_data["valid_rt"] = [0 if i < valid_rt_thresh else 1 for i in trial_data["rt"]]
         trial_data["no_resp"] = [1 if np.isnan(i) else 0 for i in trial_data["rt"]]
-        processing_log["n_skipped_percent"].append(np.round(trial_data["no_resp"].sum() / len(trial_data) * 100, 3))
         
         trial_data["block_num"] = sum([[i] * n_trials for i in range(1, n_blocks+1)], [])
         trial_data["trial_num"] = [i for i in range(1, len(trial_data)+1)]
@@ -196,37 +195,73 @@ for sub in subjects:
         all_cols = list(trial_data.columns)[:-1]
         all_cols.insert(0, "sub")
         trial_data = trial_data[all_cols]
-        
-        processing_log["invalid_rt_percent"].append(np.round((1 - (sum(trial_data["valid_rt"]) / len(trial_data))) * 100, 3))
-        processing_log["acc"].append(np.round(trial_data.accuracy.mean(), 3))
-        processing_log["acc_con"].append(np.round(trial_data[trial_data["congruent"] == 1].accuracy.mean(), 3))
-        processing_log["acc_incon"].append(np.round(trial_data[trial_data["congruent"] == 0].accuracy.mean(), 3))
-        processing_log["rt_con"].append(np.round(trial_data[(trial_data["congruent"] == 1) & (trial_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
-        processing_log["rt_incon"].append(np.round(trial_data[(trial_data["congruent"] == 0) & (trial_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
-        processing_log["rt_corr"].append(np.round(trial_data[(trial_data["congruent"] == 0) & (trial_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
-        processing_log["rt_err"].append(np.round(trial_data[(trial_data["congruent"] == 0) & (trial_data["accuracy"] == 0)]["rt"].mean() * 1000, 3))
-        processing_log["pes"].append(np.round(
-            np.log(trial_data[(trial_data["accuracy"] == 1) & (trial_data["pre_accuracy"] == 0)].rt.mean())\
-            - np.log(trial_data[(trial_data["accuracy"] == 1) & (trial_data["pre_accuracy"] == 1)].rt.mean()), 5
-        ))
-
-        processing_log["peri"].append(np.round(
-            (trial_data[(trial_data["pre_accuracy"] == 0) & (trial_data["congruent"] == 0)].accuracy.mean()\
-             - trial_data[(trial_data["pre_accuracy"] == 0) & (trial_data["congruent"] == 1)].accuracy.mean())\
-            - (trial_data[(trial_data["pre_accuracy"] == 1) & (trial_data["congruent"] == 0)].accuracy.mean()\
-             - trial_data[(trial_data["pre_accuracy"] == 1) & (trial_data["congruent"] == 1)].accuracy.mean()), 5
-        ))
 
         trial_data.to_csv(f"{output_dataset_path}{output_path}sub-{sub}_trial_data.csv", index=False)
+        condition = []
+        for condition in [0, 1]:
+            if condition == 0:
+                prefix = "_nonsoc"
+            elif condition == 1:
+                prefix = "_soc"
+            condition_data = trial_data[trial_data["condition_soc"] == condition]
+            processing_log["n_trials"+prefix].append(len(condition_data))
+            processing_log["skipped_percent"+prefix].append(np.round(condition_data["no_resp"].sum() / len(condition_data) * 100, 3))
+            processing_log["invalid_rt_percent"+prefix].append(np.round((1 - (sum(condition_data["valid_rt"]) / len(condition_data))) * 100, 3))
+            condition_data = condition_data[(condition_data["valid_rt"] == 1)]
+            processing_log["6_or_more_err"+prefix].append(1 if len(condition_data[(condition_data["no_resp"] == 0) & (condition_data["accuracy"] == 0)]) >= 6 else 0)
+            processing_log["acc"+prefix].append(np.round(condition_data.accuracy.mean(), 3))
+            processing_log["acc_con"+prefix].append(np.round(condition_data[condition_data["congruent"] == 1].accuracy.mean(), 3))
+            processing_log["acc_incon"+prefix].append(np.round(condition_data[condition_data["congruent"] == 0].accuracy.mean(), 3))
+            processing_log["rt_con"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 1) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
+            processing_log["rt_incon"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
+            processing_log["rt_corr"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
+            processing_log["rt_err"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 0)]["rt"].mean() * 1000, 3))
+            processing_log["pes"+prefix].append(np.round(
+                np.log(
+                    condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 0)].rt
+                ).mean()\
+                - np.log(
+                    condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 1)].rt
+                ).mean(), 5
+            ))
+            processing_log["pea"+prefix].append(np.round(
+                condition_data[condition_data["pre_accuracy"] == 0].accuracy.mean()\
+                - condition_data[condition_data["pre_accuracy"] == 1].accuracy.mean(), 5
+            ))
+    
+            processing_log["peri_acc"+prefix].append(np.round(
+                (
+                    condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 0)]["accuracy"].mean()\
+                 - condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 1)]["accuracy"].mean()
+                )\
+                - (
+                    condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 0)]["accuracy"].mean()\
+                 - condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 1)]["accuracy"].mean()
+                ), 5
+            ))
+    
+            processing_log["peri_rt"+prefix].append(np.round(
+                (
+                    np.log(
+                    condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 0)]["rt"]
+                    ).mean()\
+                 - np.log(
+                     condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 1)]["rt"]
+                 ).mean()
+                )\
+                - (
+                    np.log(
+                    condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 0)]["rt"]
+                    ).mean()\
+                 - np.log(
+                     condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 1)]["rt"]
+                 ).mean()
+                  ), 5
+            ))
         
-        # end = time.time()
         print(f"sub-{sub} has been processed")
-        # print(f"Executed time {np.round(end - start, 2)} s")
+
 pd.DataFrame(processing_log).to_csv(f"{output_dataset_path}{output_path}summary.csv", index=False)
-
-end = time.time()
-print(f"Executed time {np.round(end - start, 2)} s")
-
 
 [i for i in os.listdir(f"{output_dataset_path}{output_path}") if "sub-" in i]
 list_of_ind_csv = []
@@ -235,3 +270,6 @@ for df in [i for i in os.listdir(f"{output_dataset_path}{output_path}") if "sub-
 full_df = pd.concat(list_of_ind_csv)
 full_df = full_df[(full_df["pre_accuracy"] == 1) | (full_df["pre_accuracy"] == 0)]
 full_df.to_csv(f"{output_dataset_path}{output_path}full_df.csv", index = False)
+
+end = time.time()
+print(f"Executed time {np.round(end - start, 2)} s")
