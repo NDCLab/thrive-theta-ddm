@@ -1,5 +1,7 @@
 # OS specific files
 .DS_Store
+.out
 
 # ignore data specific files
 derivatives/*
+*/ipynb_checkpoints
