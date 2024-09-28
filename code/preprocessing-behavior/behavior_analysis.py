@@ -1,9 +1,11 @@
+import sys
 import os
 import glob
 import pandas as pd
 import numpy as np
 import re
 import time
+import datetime
 pd.options.mode.chained_assignment = None
 
 def convert_to_list_rt(series):
@@ -37,6 +39,9 @@ output_dataset_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"
 data_path = "sourcedata/checked/"
 sub_path = "s1_r1/psychopy/"
 output_path = "derivatives/behavior/"
+
+date_time = datetime.datetime.now().strftime("%d-%m-%Y_%H_%M_%S")
+sys.stdout = open(f"{output_dataset_path}{output_path}{date_time}_log.txt","wt")
 
 n_blocks = 20
 n_trials = 40

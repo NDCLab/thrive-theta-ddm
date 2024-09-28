@@ -226,7 +226,8 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         end
 
         % Enter the path of the folder where you want to save the processed data
-        output_location = fullfile(main_dir, "derivatives", "preprocessed", subjects_to_process(file_locater_counter), session, "eeg" );
+	output_location = fullfile("/home/data/NDClab/analyses/thrive-theta-ddm", "derivatives", "preprocessed", subjects_to_process(file_locater_counter), session, "eeg" );
+        % output_location = fullfile(main_dir, "derivatives", "preprocessed", subjects_to_process(file_locater_counter), session, "eeg" );
         % update the output_location
         output_location = char(output_location);
 
