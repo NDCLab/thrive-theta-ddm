@@ -221,7 +221,7 @@ for sub in subjects:
             processing_log["rt_incon"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
             processing_log["rt_corr"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
             processing_log["rt_err"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 0)]["rt"].mean() * 1000, 3))
-            condition_data = condition_data[(condition_data["pre_valid_rt"] == 1) & (condition_data["pre_extra_resp"] == 0)]
+            condition_data = condition_data[(condition_data["pre_valid_rt"] == 1) & (condition_data["pre_extra_resp"] == 0) & (condition_data["pre_no_resp"] == 0)]
             processing_log["pes"+prefix].append(np.round(
                 np.log(
                     condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 0) &\
