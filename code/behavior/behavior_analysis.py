@@ -221,19 +221,20 @@ for sub in subjects:
             processing_log["rt_incon"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
             processing_log["rt_corr"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
             processing_log["rt_err"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 0)]["rt"].mean() * 1000, 3))
+            condition_data = condition_data[(condition_data["pre_valid_rt"] == 1) & (condition_data["pre_extra_resp"] == 0)]
             processing_log["pes"+prefix].append(np.round(
                 np.log(
                     condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 0) &\
-                    (condition_data["pre_congruent"] == 0)].rt
+                    (condition_data["pre_congruent"] == 0)]["rt"]
                 ).mean()\
                 - np.log(
                     condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 1) &\
-                    (condition_data["pre_congruent"] == 0)].rt
+                    (condition_data["pre_congruent"] == 0)]["rt"]
                 ).mean(), 5
             ))
             processing_log["pea"+prefix].append(np.round(
-                condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["pre_congruent"] == 0)].accuracy.mean()\
-                - condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["pre_congruent"] == 0)].accuracy.mean(), 5
+                condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["pre_congruent"] == 0)]["accuracy"].mean()\
+                - condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["pre_congruent"] == 0)]["accuracy"].mean(), 5
             ))
     
             processing_log["peri_acc"+prefix].append(np.round(
@@ -255,21 +256,21 @@ for sub in subjects:
                 (
                     np.log(
                     condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 0) &\
-                        (condition_data["pre_congruent"] == 0)]["rt"]
+                        (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]
                     ).mean()\
                  - np.log(
                      condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 1) &\
-                     (condition_data["pre_congruent"] == 0)]["rt"]
+                     (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]
                  ).mean()
                 )\
                 - (
                     np.log(
                     condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 0) &\
-                    (condition_data["pre_congruent"] == 0)]["rt"]
+                    (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]
                     ).mean()\
                  - np.log(
                      condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 1) &\
-                     (condition_data["pre_congruent"] == 0)]["rt"]
+                     (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]
                  ).mean()
                   ), 5
             ))
@@ -283,7 +284,7 @@ list_of_ind_csv = []
 for df in [i for i in os.listdir(f"{output_dataset_path}{output_path}") if "sub-" in i]:
     list_of_ind_csv.append(pd.read_csv(f"{output_dataset_path}{output_path}{df}"))
 full_df = pd.concat(list_of_ind_csv)
-full_df = full_df[(full_df["pre_accuracy"] == 1) | (full_df["pre_accuracy"] == 0)]
+# full_df = full_df[(full_df["pre_accuracy"] == 1) | (full_df["pre_accuracy"] == 0)]
 full_df.to_csv(f"{output_dataset_path}{output_path}full_df.csv", index = False)
 
 end = time.time()
