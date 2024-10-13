@@ -279,9 +279,8 @@ for sub in subjects:
 
 pd.DataFrame(processing_log).to_csv(f"{output_dataset_path}{output_path}summary.csv", index=False)
 
-[i for i in os.listdir(f"{output_dataset_path}{output_path}") if "sub-" in i]
 list_of_ind_csv = []
-for df in [i for i in os.listdir(f"{output_dataset_path}{output_path}") if "sub-" in i]:
+for df in sorted([i for i in os.listdir(f"{output_dataset_path}{output_path}") if "sub-" in i]):
     list_of_ind_csv.append(pd.read_csv(f"{output_dataset_path}{output_path}{df}"))
 full_df = pd.concat(list_of_ind_csv)
 # full_df = full_df[(full_df["pre_accuracy"] == 1) | (full_df["pre_accuracy"] == 0)]
