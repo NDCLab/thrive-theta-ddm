@@ -32,7 +32,7 @@ analysis_dir = '/home/data/NDClab/analyses/thrive-theta-ddm';
 % dataset_dir = '/Users/fzaki001/thrive-theta-ddm';
 dataset_dir = '/home/data/NDClab/datasets/thrive-dataset/derivatives/preprocessed/';
 % summary_csv_path = '/Users/fzaki001/thrive-theta-ddm/derivatives/behavior/summary.csv';
-summary_csv_path = '/home/data/NDClab/analyses/thrive-theta-ddm/derivatives/behavior/summary-eeg.csv';
+summary_csv_path = '/home/data/NDClab/analyses/thrive-theta-ddm/derivatives/behavior/summary.csv';
 
 % Setting up other things
 
@@ -74,8 +74,6 @@ if exist(output_location, 'dir') == 0
 end
 
 %% Count trials
-subjects = [50, 53, 60, 62, 64, 66] % these are just ids to put to the resulting csv, they are not used for computations
-% n_subjects = length(subjects) % this number will be used for loops because the initial subjects list may be changed based on num of trials
 % switch to output directory
 cd(output_location);
 
@@ -159,3 +157,147 @@ for subject=1:length(datafile_names)
     writetable(counts_table, [output_location filesep 'thrive_trialCounts_RespAndStim_', date, '.csv'], "WriteMode", "append");
 
 end
+
+%% pull resp-locked erp mat file
+
+%read in behavioral data for participants
+behavior_info = readtable(summary_csv_path);
+
+%specify min number of trials per condition (if file contains less than
+%this number for ANY condition, then they will be skipped for ALL conditions
+minTrials = 8;
+
+%specify min accuracy per condition (if file contains less than
+%this number for ANY condition, then they will be skipped for ALL conditions
+acc_cutoff = .6;
+
+%initialize participant counter variable (used for indexing into large mat
+%file that data is saved into)
+pIdx = 1;
+
+%initialize matrices to hold erp data and corresponding sub ids
+erpDat_data = [];
+erpDat_subIds = [];
+
+% loop through each participant in the study
+for subject = 1:length(datafile_names)
+
+    %initialize numTrials for this participant/file
+    numTrials = [];
+
+    % extract participant number
+    subNumText = datafile_names{subject}(5:11);
+
+    %find row in behavior file corresponding to this participant
+    behavior_id_match_idxs = find(behavior_info{:,'sub'} == str2num(subNumText));
+
+    %if participant has low accuracy in either condition, skip that
+    %participant for ALL conditions
+    % if (behavior_info{behavior_id_match_idxs,'acc_nonsoc'} < acc_cutoff || behavior_info{behavior_id_match_idxs,'acc_soc'} < acc_cutoff)
+    %     continue
+    % end
+    % 
+    % if (behavior_info{behavior_id_match_idxs,'x6_or_more_err_nonsoc'} < 6 || behavior_info{behavior_id_match_idxs,'x6_or_more_err_soc'} < 6)
+    %     continue
+    % end
+    %load the original data set
+    EEG = pop_loadset( 'filename', datafile_names{subject}, 'filepath', datafile_paths{subject});
+    EEG = eeg_checkset( EEG );
+
+    %remove all the non-stim-locking markers (should have done already...)
+    EEG = pop_selectevent( EEG, 'latency','-.1 <= .1','deleteevents','on');
+    EEG = eeg_checkset( EEG );
+
+    % NOTE %
+    %the logic of checking conditions and then looping over conditions
+    %below is fairly hard-coded and could be be substantially improved to
+    %allow for easier reuse when number of conditions or number of
+    %variables per condition changes.
+    %
+    %before pulling trials of interest, for any conditions, check to make
+    %sure this file/participant has more than minTrials for EACH condition.
+    %If the file/participant is below minTrials for even one of the
+    %conditions that will be pulled, then the file/participant is skipped
+    %entirely and no condition data at all will be pulled for this specific
+    %file (but the participant can still have data pulled for another one
+    %of their files from another visit).
+    %
+    %count trials for each condition of interest and store in numTrials vector
+    numTrials(1) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
+    numTrials(2) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
+    numTrials(3) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
+    numTrials(4) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
+
+    %logical test if the number of trials for each condition (numTrials vector)
+    %are NOTE all >= minTrials. If statement is true, then participant/file
+    %is skipped and for loop over files continues to next file
+    % if ~(sum(numTrials >= minTrials) == length(numTrials))
+    %     continue
+    % end
+
+    % loop through conditions of interest for this file (combo of event types)
+    %
+    % specify number of conditions using a seperate conditionNums var, so
+    % that it can be referenced below when iterating idx counters (to only
+    %iterate when c == length(conditionNums);
+    conditionNums = 1:4;
+    %
+    for c = conditionNums
+
+        if (c==1) % social error
+            observation = 's';
+            eventType = 'resp';
+            congruency = 'i';
+            accuracy = 0;
+            responded = 1;
+            validRt = 1;
+        elseif (c==2) % social correct
+            observation = 's';
+            eventType = 'resp';
+            congruency = 'i';
+            accuracy = 1;
+            responded = 1;
+            validRt = 1;
+        elseif (c==3) % nonsocial error
+            observation = 'ns';
+            eventType = 'resp';
+            congruency = 'i';
+            accuracy = 0;
+            responded = 1;
+            validRt = 1;
+        elseif (c==4) % nonsocial correct
+            observation = 'ns';
+            eventType = 'resp';
+            congruency = 'i';
+            accuracy = 1;
+            responded = 1;
+            validRt = 1;
+        end
+
+        %select combintion of event types of interest based on vars above
+        EEG1 = pop_selectevent( EEG, 'latency','-1<=1','observation',observation,'eventType',eventType,'congruency',congruency,'accuracy',accuracy,'responded',responded,'validRt',validRt,'deleteevents','on','deleteepochs','on','invertepochs','off');
+        EEG1 = eeg_checkset( EEG1 );
+
+        % Average across epoch dimension
+        % this all Channel ERP only needs to be computed once
+        % per condition
+        meanEpochs = mean(EEG1.data, 3);
+
+        %store data for this condition in array
+        erpDat_data(pIdx,c,:,:)= meanEpochs;
+
+        %store participant number for corresponding row in erpdat
+        erpDat_subIds{pIdx,1} = datafile_names{subject}(5:11);
+
+        %iterate idx counter IMPORTANT: ONLY ITERATE COUNTER WHEN
+        %ON LAST CONDITION
+        if c == length(conditionNums)%if this is the last condition of condition loop
+            pIdx = pIdx + 1;
+        end
+        %end loop through conditions
+    end
+    %end loop through participants
+end
+
+%save the erps and subject list
+save('thrive_Resp_erps_min_8t_60acc.mat','erpDat_data', 'erpDat_subIds')
