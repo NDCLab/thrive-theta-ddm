@@ -5,7 +5,9 @@
 ## and ultimately saved the best fitting params.
 ##
 ## To run, this script requires some additional R packages to be installed, the rcpp file, as well as a data file.
+sink(sprintf("output_log_%s.txt", format(Sys.time(),'%y-%m-%d_%H-%M-%S')), split = TRUE)
 rm(list = ls())
+print("TEST")
 start_time <- Sys.time()
 
 #------------------------------------------------------------------------------
@@ -36,8 +38,15 @@ fitFunctionSSP <- function(
   # simulate congruent trials and save simulated trial-level data
   set.seed(42) # Before running simulation for this param set, set random number seed, so pseudo-randomness is identical across param sets
   # make sure that the "simSSP_model_GBnoScale" bit is called whatever it calls itself inside the actual .cpp file
-  SimData[1:nTrials, 1:2] <- simSSP_model_GBnoScale(parms, trialType = 1, nTrials, dt = 0.001, vari = 0.01) # congruent
-  SimData[1:nTrials, 3] <- 1 # congruent
+  # in SimData, the 1st column is RT and the 2nd is accuracy as per cpp function output
+  SimData[1:nTrials, 1:2] <- simSSP_model_GBnoScale(
+    parms,
+    trialType = 1, # congruent because 1 stays for congruent in the cpp function
+    nTrials,
+    dt = 0.001,
+    vari = 0.01
+    ) 
+  SimData[1:nTrials, 3] <- 1 # congruent because in my input dataset 1 stays for congruent
   set.seed(as.numeric(Sys.time())) # now that simulation has been run, reset the random seed to system time (to not mess up other functions using random numbers)
   
   # Now simulate incongruent trials and save simulated trial-level data
@@ -45,12 +54,12 @@ fitFunctionSSP <- function(
   # make sure that the "simSSP_model_GBnoScale" bit is called whatever it calls itself inside the actual .cpp file
   SimData[(nTrials + 1):(nTrials * 2), 1:2] <- simSSP_model_GBnoScale(
     parms,
-    trialType = 2, # incongruent
+    trialType = 2, # incongruent because 2 stays for incongruent in the cpp function
     nTrials, # number of trials to simulate
-    dt = 0.001, # why 0.001
-    vari = 0.01 # why 0.01
+    dt = 0.001,
+    vari = 0.01
   )
-  SimData[(nTrials + 1):(nTrials * 2), 3] <- 0 # incongruent why 1 incongruent
+  SimData[(nTrials + 1):(nTrials * 2), 3] <- 0 # incongruent because in my input dataset 0 stays for incongruent
   set.seed(as.numeric(Sys.time())) # now that simulation has been run, reset the random seed to system time (to not mess up other functions using random numbers)
   
   # Identify the proportions in each (human-based) cutoff, for the simulated data
@@ -127,7 +136,7 @@ fitFunctionSSP <- function(
           temp_binDiffs[k] <-  HumanTrialCounts[i]*((humanProps[[counter]][k] - temp_simProps[k])^2/temp_simProps[k])
         }
         # middle bins
-        if (k > 1 & k < nBins) { # why
+        if (k > 1 & k < nBins) {
           # get the data in the current bin
           binData <- subset(sim_accCondData, sim_accCondData$rt > cutPoints[[counter]][k-1] & sim_accCondData$rt <= cutPoints[[counter]][k])
           # find the proportion of data in this bin (proportion out of both error and correct, for this condition)
@@ -185,9 +194,9 @@ fitFunctionSSP <- function(
 
 library("DEoptim")
 library("Rcpp")
-
+# analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
+analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
 # switch to the desired working directory
-setwd("/Users/fzaki001/Downloads/post-error-ddm-main/code/")
 
 # set up default parms and upper/lower values (for now, not using default values, just upper/lower with DEoptim)
 Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
@@ -195,17 +204,18 @@ Lower <- c(0.032, 0.180, 0.130, 0.0001, 0.493); #mean of white 2011 Exp1 minus 5
 numParams <- length(Upper)
 
 # how many trials to simulate per condition 
-nTrials = 2
+nTrials = 10
 
-# names files
-# data_dir = "/Users/fzaki001/Downloads/post-error-ddm-main/input/"
-data_dir = "/Users/fzaki001/Downloads/thrive/derivatives/processed/"
-# HumanDataName <-sprintf("%sclean_flanker_data.csv", data_dir)
-HumanDataName <-sprintf("%sfull_df.csv", data_dir)
-FitOutputName <-"ddm_output_data"
+data_dir = sprintf("%sderivatives/behavior/", analysis_path)
+input_data <-sprintf("%sfull_df.csv", data_dir)
+FitOutputName <-sprintf(
+  "%sddm_output_data_%s.csv",
+  data_dir,
+  format(Sys.time(),'%y-%m-%d_%H-%M-%S') # will indicate start time
+  ) 
 
 # get the desired human data to fit the ssp model to
-importDat = read.csv(HumanDataName, header = TRUE) #data has header
+importDat = read.csv(input_data, header = TRUE) # data has header
 
 # convert rt values from ms to secs to be consistent with rest of script
 # importDat$rt <- as.numeric(importDat$rt / 1000)
@@ -217,14 +227,22 @@ subList <- (unique(importDat$sub))
 fitOutput <-data.frame(matrix(ncol=10, nrow=0))
 colnames(fitOutput) <- c("subject", "a", "ter", "p", "rd", "sda", "fitStat", "iterNum", "pre_accuracy", "condition_soc")
 fitOutput <- data.frame(fitOutput)
-# also write a .csv to append parms to at end of loops
-write.csv(fitOutput, paste0(FitOutputName, ".csv"), row.names=FALSE, na="", quote = F)
+# also write a .csv to append parms to at the end of loops
+write.csv(fitOutput, FitOutputName, row.names=FALSE, na="", quote = F)
 
-# take the data for a given social context condition and proceed with fitting for each pre-acc-congruency-acc condition 
+# take the data for a given social context condition and proceed with fitting for each pre-acc-congruency-acc condition
+# the loops of fitting are organized the following way:
+#   non-social/social (cond)
+#     subject (s)
+#        post-error/post-correct (c)
+#           congruent/incongruent (i)
+#             correct/error (j)
+#               
 #0: non-social (Alone)
 #1: social (Observed)
 
-for (cond in 1:2) { 
+for (cond in 1:2) {
+  dataCondSoc <- NULL
   if (cond == 1) {
     conditionSoc <- 0 # non-social
   } else if (cond == 2) {
@@ -233,6 +251,8 @@ for (cond in 1:2) {
   
   # loop through all subs, fit data, store best fits
   for (s in 1:length(subList)) {
+    s_start_time <- Sys.time()
+    subData <- NULL
     
     # pull out data for this subject
     subData <- subset(importDat, importDat$sub == subList[s])
@@ -245,6 +265,7 @@ for (cond in 1:2) {
     #1: postCorr
     
     for (c in 1:2) {
+      preacc_data <- NULL
       if (c == 1) {
         preAccuracy <- 0 # postError
       } else if (c == 2) {
@@ -252,7 +273,7 @@ for (cond in 1:2) {
       }
       
       # Identify the trial counts, bin cuttoffs, and proportions for the HUMAN data
-      # initialize vector to save trial counts (1=congruent; 2=incongruent)
+      # initialize vector to save trial counts (1st=congruent; 2nd=incongruent)
       HumanTrialCounts <- numeric(2) # just a vector of zeros
       
       # initialize variables to hold human quantiles, cutpoints, bin proportions
@@ -264,8 +285,8 @@ for (cond in 1:2) {
       # initialize counter variable, so that for each congruency-accuracy pair variables like quantiles, bins, will have corresponding index
       counter <- numeric(1)
       
-      ## pull out data for this condition (for this subject)
-      data <- subset(dataCondSoc, dataCondSoc$pre_accuracy == preAccuracy) #this is for having post-err/corr conditions
+      # pull out data for this condition (for this subject)
+      preacc_data <- subset(dataCondSoc, dataCondSoc$pre_accuracy == preAccuracy) # this is for having post-err/corr conditions
       
       # Loop over congruency conditions
       for (i in 1:2) {
@@ -274,9 +295,9 @@ for (cond in 1:2) {
         
         # select congruent/incongruent condition
         if (i == 1) {
-          condData <- subset(data, data$congruent == 1) # congruent
-        } else if (i==2) {
-          condData <- subset(data, data$congruent == 0) # incongruent
+          condData <- subset(preacc_data, preacc_data$congruent == 1) # congruent
+        } else if (i == 2) {
+          condData <- subset(preacc_data, preacc_data$congruent == 0) # incongruent
         }
         
         # For this condition, and based on the HUMAN data, save the total number of trials
@@ -307,7 +328,7 @@ for (cond in 1:2) {
             quantiles[[counter]] = c(.5)
           }
           if (nrow(accCondData)>5 & nrow(accCondData)<=10) {
-            quantiles[[counter]] = c(.1, .5, .9) # why not .3 .5 .9
+            quantiles[[counter]] = c(.1, .5, .9)
           }
           if (nrow(accCondData)>10) {
             quantiles[[counter]] = c(.1, .3, .5, .7, .9)
@@ -345,11 +366,11 @@ for (cond in 1:2) {
             }
             
             # middle bins
-            if (k > 1 & k < nBins) { # why
+            if (k > 1 & k < nBins) {
               # get the data in the current bin
               binData <- subset(accCondData, accCondData$rt > cutPoints[[counter]][k-1] & accCondData$rt <= cutPoints[[counter]][k])
               # find the proportion of data in this bin (proportion out of both error and correct, for this condition)
-              # if the proportion is zero, convert to a very small number (neccesary for later chi-square computation)
+              # if the proportion is zero, convert to a very small number (necessary for later chi-square computation)
               if (length(binData[, 1]) > 0) {
                 temp_humanProps[k] <- length(binData[, 1]) / HumanTrialCounts[i]
               } else {
@@ -379,15 +400,41 @@ for (cond in 1:2) {
         
       }# END Loop over congruent/incongruent (i)
       
-      modelStart <- "Wow, nice model you got there! I better start fitting it... Model Fit Running; Please Wait..."
-      print(c(modelStart, s, subList[s], " pre_accuracy: ", preAccuracy, " condition_soc: ", conditionSoc))
-      
+      # modelStart <- "Wow, nice model you got there! I better start fitting it... Model Fit Running; Please Wait..."
+      print(
+        sprintf(
+          "Start fitting model for sub-%s: condition_soc=%s pre_accuracy=%s",
+          subList[s], preAccuracy, conditionSoc
+          )
+        )
+      # print(c(modelStart, s, subList[s], " pre_accuracy: ", preAccuracy, " condition_soc: ", conditionSoc))
       # perform the fit
-      OptimFitResults <- DEoptim(fitFunctionSSP, lower = Lower, upper = Upper, control = DEoptim.control(itermax = 200, steptol = 20, parallelType = 1, packages = c("Rcpp"), parVar = c("nTrials","cutPoints","humanProps","HumanTrialCounts")), nTrials = nTrials, cutPoints = cutPoints, humanProps = humanProps, HumanTrialCounts = HumanTrialCounts, fnMap=NULL)
+      OptimFitResults <- DEoptim(
+        fitFunctionSSP,
+        lower = Lower,
+        upper = Upper,
+        control = DEoptim.control(
+          itermax = 200,
+          steptol = 20,
+          parallelType = "auto",
+          packages = c("Rcpp"),
+          parVar = c("nTrials","cutPoints","humanProps","HumanTrialCounts")
+          ),
+        nTrials = nTrials,
+        cutPoints = cutPoints,
+        humanProps = humanProps,
+        HumanTrialCounts = HumanTrialCounts,
+        fnMap=NULL
+        )
       
       modelFinished <- "Woohoo! Model Fit Finished!!"
-      print(c(modelFinished, s, subList[s], " pre_accuracy: ", preAccuracy, " condition_soc: ", conditionSoc))
-      
+      print(
+        sprintf(
+          "%s sub-%s: condition_soc=%s pre_accuracy=%s",
+          modelFinished, subList[s], preAccuracy, conditionSoc
+        )
+      )
+      # print(c(modelFinished, s, subList[s], " pre_accuracy: ", preAccuracy, " condition_soc: ", conditionSoc))
       subject <- subList[s]
       
       # pull best fitting parms- 1/5- a
@@ -412,10 +459,22 @@ for (cond in 1:2) {
       newRow <- data.frame(subject, bestParms1, bestParms2, bestParms3, bestParms4, bestParms5, bestFitStat, iter, preAccuracy, conditionSoc)
       
       # appending the parms to the csv created before the loops
-      write.table(newRow, file=paste0(FitOutputName, ".csv"), sep=",", append=TRUE, col.names = FALSE, row.names = FALSE)
-      
-    } # end loop through pre_acc conditions
-  } # end loop through subs
-} # end loop through social context conditions
+      write.table(newRow, file=FitOutputName, sep=",", append=TRUE, col.names = FALSE, row.names = FALSE)
+    } # end loop through pre_acc conditions (c)
+    s_end_time <- Sys.time()
+    print(sprintf(
+      "%s condition_soc: %s,  finished in %s minutes",
+      subList[s],
+      conditionSoc,
+      round((s_end_time - s_start_time) / 60, 2)
+      )
+    )
+  } # end loop through subs (s)
+} # end loop through social context conditions (cond)
 end_time <-Sys.time()
-end_time-start_time
+print(
+  sprintf("All finished in %s minutes",
+          round((end_time - start_time) / 60, 2)
+          )
+  )
+sink()

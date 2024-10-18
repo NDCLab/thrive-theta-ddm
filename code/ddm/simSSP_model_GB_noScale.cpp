@@ -86,14 +86,14 @@ double dt, double vari) {
         
         // calculate current sd of spotlight
         sd_t = sda - (rd * t);
-        if(sd_t <= 0.001){ // clip min sd to 0.001 // why limiting 0.001
+        if(sd_t <= 0.001){ // clip min sd to 0.001
           sd_t = 0.001;
         }
 
       // find area of spotlight over target and flanker
       // :Rf_pnorm5(value, mean of dist., sd of dist., 1 = p<x, 0 = p and 1=log(p))
       a_target = ::Rf_pnorm5(0.5, 0.0, sd_t, 1, 0) - ::Rf_pnorm5(-0.5, 0.0, sd_t, 1, 0);
-      a_flanker = ::Rf_pnorm5(10.0, 0.0, sd_t, 1, 0) - ::Rf_pnorm5(0.5, 0.0, sd_t, 1, 0); // why 10
+      a_flanker = ::Rf_pnorm5(10.0, 0.0, sd_t, 1, 0) - ::Rf_pnorm5(0.5, 0.0, sd_t, 1, 0);
   //      a_flanker = 2 * a_flanker;
 
       // get perceptual input for targets and flanker
@@ -107,7 +107,7 @@ double dt, double vari) {
 
       // current evidence
       mu_target = (p_target * a_target) * dt;
-      mu_flanker = ((2 * p_flanker) * a_flanker) * dt; // why multiplying by 2
+      mu_flanker = ((2 * p_flanker) * a_flanker) * dt;
 
       // current drift rate
       drift = mu_flanker + mu_target;
