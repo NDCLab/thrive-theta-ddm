@@ -194,9 +194,8 @@ fitFunctionSSP <- function(
 
 library("DEoptim")
 library("Rcpp")
-# analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
-analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
-# switch to the desired working directory
+analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
+# analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
 
 # set up default parms and upper/lower values (for now, not using default values, just upper/lower with DEoptim)
 Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
@@ -216,6 +215,21 @@ FitOutputName <-sprintf(
 
 # get the desired human data to fit the ssp model to
 importDat = read.csv(input_data, header = TRUE) # data has header
+
+# out of all trials subset only valid
+importDat <- subset(importDat,
+                      (importDat$pre_valid_rt == 1) &
+                      (importDat$pre_extra_resp == 0) &
+                      (importDat$pre_no_resp == 0) &
+                      (importDat$pre_congruent == 0) &
+                      (importDat$valid_rt == 1) &
+                      (importDat$no_resp == 0)
+                    )
+
+# find only subjects with both valid soc and nonsoc condition and subset them
+thrive_id_soc <- read.csv(sprintf("%sthrive_data_soc.csv", data_dir), header = TRUE)
+thrive_id_nonsoc <- read.csv(sprintf("%sthrive_data_nonsoc.csv", data_dir), header = TRUE)
+importDat <- subset(importDat, importDat$sub %in% intersect(thrive_id_soc$sub, thrive_id_nonsoc$sub))
 
 # convert rt values from ms to secs to be consistent with rest of script
 # importDat$rt <- as.numeric(importDat$rt / 1000)
