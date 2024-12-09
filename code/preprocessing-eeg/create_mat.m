@@ -14,6 +14,8 @@ clc % clear matlab command window
 % addpath(genpath([main_dir filesep 'MADE-EEG-preprocessing-pipeline']));% enter the path of the EEGLAB folder in this line
 addpath(genpath('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeg_preprocessing'));% enter the path of the folder in this line
 
+addpath(genpath('/home/data/NDClab/analyses/thrive-theta-ddm/code/matlab/'))
+
 %Location of "EEG
 % addpath(genpath([main_dir filesep 'eeglab13_4_4b']));% enter the path of the EEGLAB folder in this line
 addpath(genpath('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeglab13_4_4b'));% enter the path of the EEGLAB folder in this line
@@ -30,7 +32,7 @@ analysis_dir = '/home/data/NDClab/analyses/thrive-theta-ddm';
 
 %location of dataset folder
 % dataset_dir = '/Users/fzaki001/thrive-theta-ddm';
-dataset_dir = '/home/data/NDClab/datasets/thrive-dataset/derivatives/preprocessed/';
+dataset_dir = '/home/data/NDClab/datasets/thrive-dataset';
 % summary_csv_path = '/Users/fzaki001/thrive-theta-ddm/derivatives/behavior/summary.csv';
 summary_csv_path = '/home/data/NDClab/analyses/thrive-theta-ddm/derivatives/behavior/summary.csv';
 
@@ -81,7 +83,10 @@ cd(output_location);
 % outputHeader = {'id, s_resp_incon_error, s_resp_incon_corr, ns_resp_incon_error, ns_resp_incon_corr'};
 % dlmwrite(strcat('thrive_trialCounts_respOnly', date, '.csv'), outputHeader, 'delimiter', '', '-append');
 
+diary(sprintf('erp_log_%s.log', datestr(now, 'mm_dd_yyyy_HH_MM_SS')))
+
 for subject=1:length(datafile_names)
+
     EEG=[];
 
     fprintf('\n\n\n*** Processing subject %d (%s) ***\n\n\n', subject, datafile_names{subject});
@@ -138,14 +143,14 @@ for subject=1:length(datafile_names)
 
     %count how many of each event type (combination of event types) of
     %interest are present
-    s_resp_incon_error = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    s_resp_incon_corr = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    ns_resp_incon_error = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    ns_resp_incon_corr = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    s_stim_incon_corr = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "stim")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    s_stim_con_corr = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "stim")) & (strcmp({EEG.event.congruency}, "c")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    ns_stim_incon_corr = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "stim")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    ns_stim_con_corr = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "stim")) & (strcmp({EEG.event.congruency}, "c")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
+    s_resp_incon_error = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
+    s_resp_incon_corr = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0)   ));
+    ns_resp_incon_error = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0)   ));
+    ns_resp_incon_corr = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0)   ));
+    s_stim_incon_corr = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "stim")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0)   ));
+    s_stim_con_corr = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "stim")) & (strcmp({EEG.event.congruency}, "c")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0)   ));
+    ns_stim_incon_corr = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "stim")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0)   ));
+    ns_stim_con_corr = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "stim")) & (strcmp({EEG.event.congruency}, "c")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0)   ));
 
     %Create the trial counts table for trial counts
     counts_table=table({datafile_names{subject}}, {s_resp_incon_error}, {s_resp_incon_corr}, {ns_resp_incon_error}, {ns_resp_incon_corr}, {s_stim_incon_corr}, {s_stim_con_corr}, {ns_stim_incon_corr}, {ns_stim_con_corr});
@@ -165,7 +170,7 @@ behavior_info = readtable(summary_csv_path);
 
 %specify min number of trials per condition (if file contains less than
 %this number for ANY condition, then they will be skipped for ALL conditions
-minTrials = 8;
+minTrials = 6;
 
 %specify min accuracy per condition (if file contains less than
 %this number for ANY condition, then they will be skipped for ALL conditions
@@ -208,32 +213,18 @@ for subject = 1:length(datafile_names)
     EEG = pop_selectevent( EEG, 'latency','-.1 <= .1','deleteevents','on');
     EEG = eeg_checkset( EEG );
 
-    % NOTE %
-    %the logic of checking conditions and then looping over conditions
-    %below is fairly hard-coded and could be be substantially improved to
-    %allow for easier reuse when number of conditions or number of
-    %variables per condition changes.
-    %
-    %before pulling trials of interest, for any conditions, check to make
-    %sure this file/participant has more than minTrials for EACH condition.
-    %If the file/participant is below minTrials for even one of the
-    %conditions that will be pulled, then the file/participant is skipped
-    %entirely and no condition data at all will be pulled for this specific
-    %file (but the participant can still have data pulled for another one
-    %of their files from another visit).
-    %
     %count trials for each condition of interest and store in numTrials vector
-    numTrials(1) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    numTrials(2) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    numTrials(3) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    numTrials(4) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
+    numTrials(1) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
+    numTrials(2) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
+    numTrials(3) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
+    numTrials(4) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
 
     %logical test if the number of trials for each condition (numTrials vector)
     %are NOTE all >= minTrials. If statement is true, then participant/file
     %is skipped and for loop over files continues to next file
-    % if ~(sum(numTrials >= minTrials) == length(numTrials))
-    %     continue
-    % end
+    if ~(sum(numTrials >= minTrials) == length(numTrials))
+        continue
+    end
 
     % loop through conditions of interest for this file (combo of event types)
     %
@@ -251,6 +242,7 @@ for subject = 1:length(datafile_names)
             accuracy = 0;
             responded = 1;
             validRt = 1;
+            extraResponse = 0;
         elseif (c==2) % social correct
             observation = 's';
             eventType = 'resp';
@@ -258,6 +250,7 @@ for subject = 1:length(datafile_names)
             accuracy = 1;
             responded = 1;
             validRt = 1;
+            extraResponse = 0;
         elseif (c==3) % nonsocial error
             observation = 'ns';
             eventType = 'resp';
@@ -265,6 +258,7 @@ for subject = 1:length(datafile_names)
             accuracy = 0;
             responded = 1;
             validRt = 1;
+            extraResponse = 0;
         elseif (c==4) % nonsocial correct
             observation = 'ns';
             eventType = 'resp';
@@ -272,11 +266,12 @@ for subject = 1:length(datafile_names)
             accuracy = 1;
             responded = 1;
             validRt = 1;
+            extraResponse = 0;
         end
 
         %select combintion of event types of interest based on vars above
-        EEG1 = pop_selectevent( EEG, 'latency','-1<=1','observation',observation,'eventType',eventType,'congruency',congruency,'accuracy',accuracy,'responded',responded,'validRt',validRt,'deleteevents','on','deleteepochs','on','invertepochs','off');
-        EEG1 = eeg_checkset( EEG1 );
+        EEG1 = pop_selectevent( EEG, 'latency', '-1<=1', 'observation', observation, 'eventType', eventType, 'congruency', congruency, 'accuracy', accuracy, 'responded', responded, 'validRt', validRt, 'extraResponse', extraResponse, 'deleteevents', 'on', 'deleteepochs', 'on', 'invertepochs', 'off');
+        EEG1 = eeg_checkset(EEG1);
 
         % Average across epoch dimension
         % this all Channel ERP only needs to be computed once
@@ -300,4 +295,4 @@ for subject = 1:length(datafile_names)
 end
 
 %save the erps and subject list
-save('thrive_Resp_erps_min_8t_60acc.mat','erpDat_data', 'erpDat_subIds')
+save(sprintf('thrive_Resp_erps_min_6t_60acc_%s.mat', datestr(now, 'mm_dd_yyyy_HH_MM_SS')), 'erpDat_data', 'erpDat_subIds')

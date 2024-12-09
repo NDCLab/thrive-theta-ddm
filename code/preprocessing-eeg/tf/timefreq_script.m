@@ -190,8 +190,9 @@ elseif RestorEvent==0
         
         %pull out condition data
         cond_data = []; cond_EEG=[];
-        cond_EEG = pop_selectevent( EEG, 'Condition',(Conds{cond}), 'deleteevents','on','deleteepochs','on','invertepochs','off');
-        cond_data = eeg_checkset( cond_EEG.data );%add pulling out condition specific data
+        cond_EEG = pop_selectevent(EEG, 'Condition',(Conds{cond}), 'deleteevents','on','deleteepochs','on','invertepochs','off');
+        cond_data = eeg_checkset(cond_EEG.data);%add pulling out condition specific data
+        fprintf('\n* Condition %s data shape: %d\n *\n', Conds{cond}, size(cond_data, 3));
          
         %Create TrialNums structure to be saved out
         TrialNums( sub+(cond-1)+((sub-1)*(length(Conds)-1)) ).subject = subject;

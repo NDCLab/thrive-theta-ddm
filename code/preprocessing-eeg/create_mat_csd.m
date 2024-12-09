@@ -31,16 +31,16 @@ rmpath(['/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eegla
 analysis_dir = '/home/data/NDClab/analyses/thrive-theta-ddm';
 
 %location of dataset folder
-% dataset_dir = '/Users/fzaki001/thrive-theta-ddm';
-dataset_dir = '/home/data/NDClab/datasets/thrive-dataset';
+dataset_dir = '/home/data/NDClab/analyses/thrive-theta-ddm';
+%dataset_dir = '/home/data/NDClab/datasets/thrive-dataset';
 % summary_csv_path = '/Users/fzaki001/thrive-theta-ddm/derivatives/behavior/summary.csv';
 summary_csv_path = '/home/data/NDClab/analyses/thrive-theta-ddm/derivatives/behavior/summary.csv';
 
 % Setting up other things
 
 % 1. Enter the path of the folder that has the data to be analyzed
-data_location = [dataset_dir filesep 'derivatives' filesep 'preprocessed'];
-
+%data_location = [dataset_dir filesep 'derivatives' filesep 'preprocessed'];
+data_location = [dataset_dir filesep 'derivatives' filesep 'preprocessed' filesep 'csd_data'];
 % 2. Enter the path of the folder where you want to save the postprocessing outputs
 output_location = [analysis_dir filesep 'derivatives' filesep 'preprocessed/erp_check'];
 
@@ -58,7 +58,8 @@ visitDirName = 's1_r1'; %visit folder does not list "e1"
 visitFileName = 's1_r1_e1'; %file names include "e1" designation
 
 % Read files to analyses
-datafile_info=dir([data_location filesep 'sub-*' filesep visitDirName filesep 'eeg' filesep 'sub-*_' task '_eeg_*' procStage '_' visitFileName '.set']);
+%datafile_info=dir([data_location filesep 'sub-*' filesep visitDirName filesep 'eeg' filesep 'sub-*_' task '_eeg_*' procStage '_' visitFileName '.set']);
+datafile_info=dir([data_location filesep 'sub-*_' task '_eeg_*' procStage '_' visitFileName '.set']);
 datafile_info=datafile_info(~ismember({datafile_info.name},{'.', '..', '.DS_Store'}));
 datafile_names={datafile_info.name};
 datafile_paths={datafile_info.folder};
@@ -72,15 +73,15 @@ end
 
 % Create output folders to save data
 if exist(output_location, 'dir') == 0
-    mkdir(output_location)
+    mkdir(output_location);
 end
 
-for site = 1:64
-    trodes{site} = num2str(site)
-end
-Montage_64=ExtractMontage('/home/data/NDClab/analyses/thrive-theta-ddm/code/preprocessing-eeg/64ch_bv_montage_csd.csd', trodes');
+%for site = 1:64
+%    trodes{site} = num2str(site);
+%end
+%Montage_64=ExtractMontage('/home/data/NDClab/analyses/thrive-theta-ddm/code/preprocessing-eeg/64ch_bv_montage_csd.csd', trodes');
 % MapMontage(Montage_64);
-[G, H] = GetGH(Montage_64);
+%[G, H] = GetGH(Montage_64);
 
 %% Count trials
 % switch to output directory
@@ -90,7 +91,7 @@ cd(output_location);
 % outputHeader = {'id, s_resp_incon_error, s_resp_incon_corr, ns_resp_incon_error, ns_resp_incon_corr'};
 % dlmwrite(strcat('thrive_trialCounts_respOnly', date, '.csv'), outputHeader, 'delimiter', '', '-append');
 
-diary(sprintf('erp_log_%s.log', datestr(now, 'mm-dd-yyyy_HH_MM_SS')))
+diary(sprintf('erp_log_%s.log', datestr(now, 'mm_dd_yyyy_HH_MM_SS')))
 
 %% pull resp-locked erp mat file
 
@@ -125,16 +126,6 @@ for subject = 1:length(datafile_names)
     %find row in behavior file corresponding to this participant
     behavior_id_match_idxs = find(behavior_info{:,'sub'} == str2num(subNumText));
 
-    %if participant has low accuracy in either condition, skip that
-    %participant for ALL conditions
-    % if (behavior_info{behavior_id_match_idxs,'acc_nonsoc'} < acc_cutoff || behavior_info{behavior_id_match_idxs,'acc_soc'} < acc_cutoff)
-    %     continue
-    % end
-    % 
-    % if (behavior_info{behavior_id_match_idxs,'x6_or_more_err_nonsoc'} < 6 || behavior_info{behavior_id_match_idxs,'x6_or_more_err_soc'} < 6)
-    %     continue
-    % end
-    %load the original data set
     EEG = pop_loadset( 'filename', datafile_names{subject}, 'filepath', datafile_paths{subject});
     EEG = eeg_checkset( EEG );
 
@@ -142,34 +133,20 @@ for subject = 1:length(datafile_names)
     EEG = pop_selectevent( EEG, 'latency','-.1 <= .1','deleteevents','on');
     EEG = eeg_checkset( EEG );
 
-    for ne = 1:length(EEG.epoch)
-        myEEG = single(EEG.data(:, :, ne));
-        MyResults = CSD(myEEG, G, H);            % compute CSD for <channels-by-samples> 2-D epoch
-        data(:, :, ne) = MyResults;
-    end
-    EEG.data = data
+   % for ne = 1:length(EEG.epoch)
+   %     myEEG = single(EEG.data(:, :, ne));
+   %     MyResults = CSD(myEEG, G, H);            % compute CSD for <channels-by-samples> 2-D epoch
+   %     data(:, :, ne) = MyResults;
+   % end
+   % EEG.data = data
 
-    data(:,:,:) = NaN;
+   % data(:,:,:) = NaN;
 
-    % NOTE %
-    %the logic of checking conditions and then looping over conditions
-    %below is fairly hard-coded and could be be substantially improved to
-    %allow for easier reuse when number of conditions or number of
-    %variables per condition changes.
-    %
-    %before pulling trials of interest, for any conditions, check to make
-    %sure this file/participant has more than minTrials for EACH condition.
-    %If the file/participant is below minTrials for even one of the
-    %conditions that will be pulled, then the file/participant is skipped
-    %entirely and no condition data at all will be pulled for this specific
-    %file (but the participant can still have data pulled for another one
-    %of their files from another visit).
-    %
     %count trials for each condition of interest and store in numTrials vector
-    numTrials(1) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    numTrials(2) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    numTrials(3) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
-    numTrials(4) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1)   ));
+    numTrials(1) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
+    numTrials(2) = length(find( (strcmp({EEG.event.observation}, "s")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
+    numTrials(3) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 0) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
+    numTrials(4) = length(find( (strcmp({EEG.event.observation}, "ns")) & (strcmp({EEG.event.eventType}, "resp")) & (strcmp({EEG.event.congruency}, "i")) & ([EEG.event.accuracy] == 1) & ([EEG.event.responded] == 1) & ([EEG.event.validRt] == 1) & ([EEG.event.extraResponse] == 0) ));
 
     %logical test if the number of trials for each condition (numTrials vector)
     %are NOTE all >= minTrials. If statement is true, then participant/file
@@ -178,13 +155,7 @@ for subject = 1:length(datafile_names)
         continue
     end
 
-    % loop through conditions of interest for this file (combo of event types)
-    %
-    % specify number of conditions using a seperate conditionNums var, so
-    % that it can be referenced below when iterating idx counters (to only
-    %iterate when c == length(conditionNums);
     conditionNums = 1:4;
-    %
     for c = conditionNums
 
         if (c==1) % social error
@@ -194,6 +165,7 @@ for subject = 1:length(datafile_names)
             accuracy = 0;
             responded = 1;
             validRt = 1;
+            extraResponse = 0;
         elseif (c==2) % social correct
             observation = 's';
             eventType = 'resp';
@@ -201,6 +173,7 @@ for subject = 1:length(datafile_names)
             accuracy = 1;
             responded = 1;
             validRt = 1;
+            extraResponse = 0;
         elseif (c==3) % nonsocial error
             observation = 'ns';
             eventType = 'resp';
@@ -208,6 +181,7 @@ for subject = 1:length(datafile_names)
             accuracy = 0;
             responded = 1;
             validRt = 1;
+            extraResponse = 0;
         elseif (c==4) % nonsocial correct
             observation = 'ns';
             eventType = 'resp';
@@ -215,10 +189,11 @@ for subject = 1:length(datafile_names)
             accuracy = 1;
             responded = 1;
             validRt = 1;
+            extraResponse = 0;
         end
 
-        %select combintion of event types of interest based on vars above
-        EEG1 = pop_selectevent( EEG, 'latency','-1<=1','observation',observation,'eventType',eventType,'congruency',congruency,'accuracy',accuracy,'responded',responded,'validRt',validRt,'deleteevents','on','deleteepochs','on','invertepochs','off');
+        %select combination of event types of interest based on vars above
+        EEG1 = pop_selectevent( EEG, 'latency','-1<=1','observation', observation, 'eventType', eventType, 'congruency', congruency, 'accuracy', accuracy, 'responded', responded,'validRt', validRt, 'extraResponse', extraResponse, 'deleteevents','on','deleteepochs','on','invertepochs','off');
         EEG1 = eeg_checkset( EEG1 );
 
         % Average across epoch dimension
@@ -243,4 +218,4 @@ for subject = 1:length(datafile_names)
 end
 
 %save the erps and subject list
-save('thrive_Resp_erps_csd_min_6t_60acc.mat','erpDat_data', 'erpDat_subIds')
+save(sprintf('thrive_Resp_erps_csd_min_6t_60acc_%s.mat', datestr(now, 'mm_dd_yyyy_HH_MM_SS')), 'erpDat_data', 'erpDat_subIds')

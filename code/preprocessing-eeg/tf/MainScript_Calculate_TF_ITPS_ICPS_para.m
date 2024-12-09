@@ -19,7 +19,7 @@ main_dir = '/home/data/NDClab/analyses/thrive-theta-ddm'; %directory on the HPC
 data_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'csd_data'];
 
 %2. Save Data Location
-save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep 'main' filesep 'resp' filesep];
+save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep 'main' filesep 'stim' filesep];
 %disp(save_location)
 % Create output folders to save data
 if exist(save_location, 'dir') == 0
@@ -51,20 +51,33 @@ RestorEvent = 0; %1 = rest, 0 = event
 %7. What are your conditions of interest if using Event-Related Data? This
 %naming convention should come from the Edit_events.m script provided.
 %Note: not needed for resting state data.
-
+%Super_Conds = {
+%{'resp_s_i_0'},...
+%{'resp_s_i_1'},...
+%{'resp_s_c_1'},...
+%{'resp_ns_i_0'},...
+%{'resp_ns_i_1'},...
+%{'resp_ns_c_1'},...
+%}
 % RESPONSE CONDITIONS
-Conds = {
+%Conds = {
 %'resp_s_i_0',...
 %'resp_s_i_1',...
 %'resp_s_c_1',...
 %'resp_ns_i_0',...
 %'resp_ns_i_1',...
-'resp_ns_c_1',...
-}; % resp_i_0 = incong error response; resp_i_1 = incong correct response
+%'resp_ns_c_1',...
+%}; % resp_i_0 = incong error response; resp_i_1 = incong correct response
 
 % STIMULUS CONDITIONS
-%Conds = {'stim_s_i_0','stim_s_i_1', 'stim_s_c_1', ...
-%    'stim_ns_i_0','stim_ns_i_1', 'stim_ns_c_1',}; % resp_i_0 = incong error stim; resp_i_1 = incong correct response
+Conds = {
+%'stim_s_i_0',...
+%'stim_s_i_1',...
+%'stim_s_c_1',...
+%'stim_ns_i_0',...
+%'stim_ns_i_1',...
+'stim_ns_c_1',...
+}; % resp_i_0 = incong error stim; resp_i_1 = incong correct response
 
 %8. Minimum number of trials to analyze
 mintrialnum = 6; %If the participant does not have enough trials in a condition based on this cutoff, a "notenoughdata.mat" file will be saved into save_location.
@@ -97,7 +110,7 @@ range_cycles = [3 10]; % wavelet cycles: min 3 max 10
 %%%%% Questions about phase-based measures %%%%%
 
 %14. Would you like to calculate inter-trial phase synchrony (ITPS) in addition to TF?
-ITPS_calc = 0; %(1=yes,0=no)
+ITPS_calc = 1; %(1=yes,0=no)
 
 %15. Would you like to subsample trials? This is recommended for event-related paradigms, 
 % especially when there are uneven numbers of trials in conditions. 
@@ -114,7 +127,7 @@ NumSubsamples = 100; %
 ICPS_calc = 1; %(1=yes,0=no) 
 
 %17. Would you like to calculate coherence or weighted phaselagidx?
-ICPS_or_wPLI = 0; %(1=coherence, 0=wPLI)
+ICPS_or_wPLI = 1; %(1=coherence, 0=wPLI)
 
 %18. Inter-channel phase synchrony over trials or connectivity over time?
 % Kia: over trials results in a frequency by time matrix and over time
@@ -146,12 +159,8 @@ end
 TrialNums = zeros(length(subject_list), length(Conds));
 %rng(2, 'twister'); % to fix seed
 
-%D = parallel.pool.DataQueue;
-%waitbar = waitbar(0, 'Processing subjects...');
-%afterEach(D, @(x) waitbar(x/length(subject_list), waitbar));
 %%%%%%%%%%%%%%%%%%%% COMPUTATIONS BEGIN BELOW HERE %%%%%%%%%%%%%%%%
 %% loop through all subject
-
 parfor sub=1:length(subject_list)
 %parfor sub=1:2
    % rng(2, 'twister'); % if you want to fix the seed put it inside the loop as well    

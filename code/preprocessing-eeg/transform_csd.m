@@ -5,11 +5,17 @@
 % Workshop on 02/22. This script uses parts of the "set up" structure from
 % the MADE preprocessing pipeline (Debnath, Buzzell, et. al., 2020)
 
-clear % clear matlab workspace
-clc % clear matlab command window
-
+%clear % clear matlab workspace
+%clc % clear matlab command window
+cluster = parcluster('local');
 %% Setting up other things
-
+parpool(cluster, str2num(getenv('SLURM_CPUS_PER_TASK'))) % this should be same as --cpus-per-task
+pool = gcp('nocreate');  % Get the current parallel pool without creating a new one
+if isempty(pool)
+    disp('No parallel pool is currently running.');
+else
+    disp(['Parallel pool with ', num2str(pool.NumWorkers), ' workers is running.']);
+end
 %Location of MADE and ADJUSTED-ADJUST scripts
 % addpath(genpath([main_dir filesep 'MADE-EEG-preprocessing-pipeline']));% enter the path of the EEGLAB folder in this line
 addpath(genpath('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeg_preprocessing'));% enter the path of the folder in this line
@@ -71,35 +77,41 @@ for site = 1:64;
     trodes{site} = num2str(site);
 end
 Montage_64=ExtractMontage('/home/data/NDClab/analyses/thrive-theta-ddm/code/preprocessing-eeg/64ch_bv_montage_csd.csd', trodes');
-% MapMontage(Montage_64);
 [G, H] = GetGH(Montage_64);
 
 diary(sprintf('csd_log_%s.log', datestr(now, 'mm-dd-yyyy_HH_MM_SS')))
 
 % loop through each participant in the study
-for subject = 1:length(datafile_names)
+parfor subject = 1:length(datafile_names)
+    try
+	% extract participant number
+        subNumText = datafile_names{subject}(5:11);
 
-    % extract participant number
-    subNumText = datafile_names{subject}(5:11);
+	%load the original data set
+	EEG = pop_loadset('filename', datafile_names{subject}, 'filepath', datafile_paths{subject});
+	EEG = eeg_checkset(EEG);
+        
+	%remove all the non-stim-locking markers (should have done already...)
+	EEG = pop_selectevent(EEG, 'latency','-.1 <= .1','deleteevents','on');
+	EEG = eeg_checkset(EEG);
+	fprintf('Subject %s: Processing %d events\n', subNumText, length(EEG.event));
+        data = zeros(size(EEG.data), 'single');
+	for ne = 1:length(EEG.epoch)
+            myEEG = single(EEG.data(:, :, ne));
+	    MyResults = CSD(myEEG, G, H);            % compute CSD for <channels-by-samples> 2-D epoch
+	    data(:, :, ne) = MyResults;
+	end
 
-    %load the original data set
-    EEG = pop_loadset('filename', datafile_names{subject}, 'filepath', datafile_paths{subject});
-    EEG = eeg_checkset(EEG);
-    disp(datafile_names{subject})
-    disp(save_location)
-    %remove all the non-stim-locking markers (should have done already...)
-    EEG = pop_selectevent(EEG, 'latency','-.1 <= .1','deleteevents','on');
-    EEG = eeg_checkset(EEG);
-
-    for ne = 1:length(EEG.epoch)
-        myEEG = single(EEG.data(:, :, ne));
-        MyResults = CSD(myEEG, G, H);            % compute CSD for <channels-by-samples> 2-D epoch
-        data(:, :, ne) = MyResults;
+	EEG.data = data;
+	EEG = eeg_checkset(EEG);
+	disp(size(EEG.event))
+	    
+	EEG = pop_editset(EEG, 'setname', datafile_names{subject});
+	EEG = pop_saveset(EEG, 'filename', datafile_names{subject}, 'filepath', save_location);
+        fprintf('Subject %s: Successfully processed and saved\n', subNumText);
+%	clear data;
+    catch ME
+        fprintf('Error processing subject %s: %s\n', subNumText, ME.message);
+        continue;
     end
-    EEG.data = data;
-
-    data(:,:,:) = NaN;
-
-    EEG = pop_editset(EEG, 'setname', datafile_names{subject});
-    EEG = pop_saveset(EEG, 'filename', datafile_names{subject}, 'filepath', save_location);
 end

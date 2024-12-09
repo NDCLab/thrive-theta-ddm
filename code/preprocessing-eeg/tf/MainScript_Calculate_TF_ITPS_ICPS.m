@@ -1,25 +1,30 @@
 %%to Run on FIU HPC%
 % create a local cluster object
-cluster = parcluster('local');
+%cluster = parcluster('local');
 
 % start matlabpool with max workers set in the slurm file
-parpool(cluster, str2num(getenv('SLURM_CPUS_ON_NODE')))
+%parpool(cluster, str2num(getenv('SLURM_CPUS_ON_NODE')))
 %Compute TF, ITPS, ICPS, and wPLI measures for EEG data
 %Maureen Bowers 6/29/2021 based on scripts by Ranjan Debnath
-% Kianoosh Hosseini has edited this script for mfe_b study on 07/18/2023!
+
 clear all;
 clc;
 
 %%
 %%%%% Setting paths %%%%%
 
-main_dir = '/home/data/NDClab/datasets/thrive-theta-ddm'; %directory on the HPC
+main_dir = '/home/data/NDClab/analyses/thrive-theta-ddm'; %directory on the HPC
 
 %1. Data Location
 data_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'csd_data'];
 
 %2. Save Data Location
-save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'eeg' filesep 'TF_outputs' filesep 'main' filesep ];
+save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep 'test_fix_seed'];
+%disp(save_location)
+% Create output folders to save data
+if exist(save_location, 'dir') == 0
+    mkdir(save_location);
+end
 
 %3. Scripts Location
 scripts_location = [main_dir filesep 'code' filesep 'preprocessing-eeg' filesep 'tf'];
@@ -122,10 +127,15 @@ end
 
 eeglab % Loading EEGLAB
 
+%rng('default'); % Reset random number generator
+%s = RandStream('mlfg6331_64');  % Create a random number stream
+
+rng(2,"twister")
+
 %%%%%%%%%%%%%%%%%%%% COMPUTATIONS BEGIN BELOW HERE %%%%%%%%%%%%%%%%
 %% loop through all subject
-for sub=1:5
-    
+for sub=1:2
+    % Use the same stream for all workers
     % Initialize objects for this participant:
     timefreqs_data = [];
     phase_data=[];
@@ -141,8 +151,8 @@ for sub=1:5
     EEG=pop_loadset('filename', [subject], 'filepath', data_location);
     EEG = pop_selectevent( EEG, 'latency','-.1 <= .1','deleteevents','on');
     
-    EEG = pop_editeventfield( EEG, 'indices',  strcat('1:', int2str(length(EEG.event))), 'Condition','NaN');
-    EEG = eeg_checkset( EEG );
+    EEG = pop_editeventfield(EEG, 'indices',  strcat('1:', int2str(length(EEG.event))), 'Condition','NaN');
+    EEG = eeg_checkset(EEG);
     
     for t=1:length(EEG.event)
 
@@ -181,8 +191,8 @@ for sub=1:5
     % Trials that are labeled as responded and validRt (trials that have larger than 150 ms RT) 
     % will only be included.
     try 
-        EEG = pop_selectevent( EEG, 'validRt', 1, 'extraResponse', 0, deleteevents','on','deleteepochs','on','invertepochs','off');
-        EEG = eeg_checkset( EEG );
+        EEG = pop_selectevent(EEG, 'validRt', 1, 'extraResponse', 0, 'deleteevents', 'on', 'deleteepochs', 'on', 'invertepochs', 'off');
+        EEG = eeg_checkset(EEG);
 
     catch ME
         warning('Error occurred when selecting only valid trials for subject %d: %s', subject, ME.message);
@@ -190,8 +200,8 @@ for sub=1:5
     end
 
     try 
-        EEG = pop_selectevent( EEG, 'responded',1, 'deleteevents','on','deleteepochs','on','invertepochs','off');
-        EEG = eeg_checkset( EEG );
+        EEG = pop_selectevent(EEG, 'responded', 1, 'deleteevents', 'on', 'deleteepochs', 'on', 'invertepochs', 'off');
+        EEG = eeg_checkset(EEG);
 
     catch ME
         warning('Error occurred when selecting only valid trials (responded) for subject %d: %s', subject, ME.message);
