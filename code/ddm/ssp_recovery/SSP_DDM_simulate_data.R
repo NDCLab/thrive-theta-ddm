@@ -7,10 +7,10 @@ start_time <- Sys.time()
 
 library("DEoptim")
 library("Rcpp")
-analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
-# analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
-output_sim_path <- '/Users/fzaki001/thrive-theta-ddm/derivatives/behavior/ddm_recovery/sim_data'
-output_fit_path <- '/Users/fzaki001/thrive-theta-ddm/derivatives/behavior/ddm_recovery/fit_data'
+# analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
+analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
+output_sim_path <- sprintf("%s/derivatives/behavior/ddm_recovery/sim_data/", analysis_path)
+output_fit_path <- sprintf("%s/derivatives/behavior/ddm_recovery/fit_data/", analysis_path)
 
 # set up parameter range to sample for simulation of data
 Upper <- c(.19, .45, .55, .026,  2.6); # from White 2018: a ter p rd sda
@@ -18,7 +18,8 @@ Lower <- c(.07, .15, .2, .01, 1); # from White 2018: a ter p rd sda
 numParams <- length(Upper)
 
 # how many trials to simulate per condition
-nTrials_to_sim = c(50, 100, 200, 500, 1000, 5000)
+#nTrials_to_sim = c(50, 100, 200, 500, 1000, 5000)
+nTrials_to_sim = c(5, 10, 25)
 
 dt <- 0.001
 vari <- 0.01

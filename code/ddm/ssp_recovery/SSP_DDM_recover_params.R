@@ -187,13 +187,15 @@ fitFunctionSSP <- function(
 }# End of fitFunctionSSP
 #------------------------------------------------------------------------------
 
-analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
-# analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
-output_sim_path <- '/Users/fzaki001/thrive-theta-ddm/derivatives/behavior/ddm_recovery/sim_data'
-output_fit_path <- '/Users/fzaki001/thrive-theta-ddm/derivatives/behavior/ddm_recovery/fit_data'
+# analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
+# analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
+analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
+output_sim_path <- sprintf("%s/derivatives/behavior/ddm_recovery/sim_data/", analysis_path)
+output_fit_path <- sprintf("%s/derivatives/behavior/ddm_recovery/fit_data/", analysis_path)
 
 # how many trials to simulate per condition
-nTrials_to_sim = c(50, 100, 200, 500, 1000, 5000)
+#nTrials_to_sim = c(50, 100, 200, 500, 1000, 5000)
+nTrials_to_sim = c(5, 10, 25)
 
 dt <- 0.001
 vari <- 0.01
@@ -202,14 +204,25 @@ vari <- 0.01
 Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
 Lower <- c(0.032, 0.180, 0.130, 0.0001, 0.493); #mean of white 2011 Exp1 minus 5 sd
 nTrials <- 10000
-output_fit_file <- "recovered_params.csv"
+output_fit_file <- sprintf(
+  "recovered_params_%s.csv",
+  format(Sys.time(),'%y_%m_%d_%H_%M_%S') # will indicate start time
+  )
 numParams <- length(Upper)
+
+fitOutput <-data.frame(matrix(ncol=9, nrow=0))
+colnames(fitOutput) <- c("subject", "a", "ter", "p", "rd", "sda", "fitStat", "iteNum", "seed")
+fitOutput <- data.frame(fitOutput)
+
+# also write a .csv to append parms to at the end of loops
+write.csv(fitOutput, sprintf("%s/%s", output_fit_path, output_fit_file), row.names=FALSE, na="", quote = F)
 
 for (condition in nTrials_to_sim) {
   
-  for (cb in seq(1, 100)) {
-    set.seed(cb)  # For reproducibility
-    output_fit_file <- sprintf("%s/fit_data_%s_%s.csv", output_fit_path, condition, cb)
+  for (cb in seq(1, 100)[96:100]) {
+    start_time <- Sys.time()
+    seed <- cb + sample(1:10e6, 1)
+    set.seed(seed)  # For reproducibility
     sim_data <- read.csv(sprintf("%s/sim_data_%s_%s.csv", output_sim_path, condition, cb))
     
     HumanTrialCounts <- numeric(2) # just a vector of zeros
@@ -340,7 +353,7 @@ for (condition in nTrials_to_sim) {
         condition, cb
       )
     )
-    # print(c(modelStart, s, subList[s], " pre_accuracy: ", preAccuracy, " condition_soc: ", conditionSoc))
+
     # perform the fit
     OptimFitResults <- DEoptim(
       fitFunctionSSP,
@@ -389,7 +402,7 @@ for (condition in nTrials_to_sim) {
     
     newRow<- NULL 
     # make new row with values created above
-    newRow <- data.frame(subject, bestParms1, bestParms2, bestParms3, bestParms4, bestParms5, bestFitStat, iter, preAccuracy, conditionSoc)
+    newRow <- data.frame(subject, bestParms1, bestParms2, bestParms3, bestParms4, bestParms5, bestFitStat, iter, seed)
     
     # appending the parms to the csv created before the loops
     write.table(newRow, file=sprintf("%s/%s", output_fit_path, output_fit_file), sep=",", append=TRUE, col.names = FALSE, row.names = FALSE)
@@ -401,6 +414,6 @@ for (condition in nTrials_to_sim) {
               alloc_time / 60)
     )
   } # end cb (cb) lop
-} # end nntrials (condition) loop
+} # end ntrials (condition) loop
 
 sink()
