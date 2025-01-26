@@ -1,12 +1,5 @@
-%
-% Modified on 2024/04/11 to process thrive dataset flanker data
-%
-% This script was created by George Buzzell for the NDC Lab EEG Training
-% Workshop on 02/22. This script uses parts of the "set up" structure from
-% the MADE preprocessing pipeline (Debnath, Buzzell, et. al., 2020)
 
 %clear % clear matlab workspace
-%clc % clear matlab command window
 cluster = parcluster('local');
 %% Setting up other things
 parpool(cluster, str2num(getenv('SLURM_CPUS_PER_TASK'))) % this should be same as --cpus-per-task
@@ -44,7 +37,6 @@ dataset_dir = '/home/data/NDClab/datasets/thrive-dataset';
 data_location = [dataset_dir filesep 'derivatives' filesep 'preprocessed'];
 
 % 2. Enter the path of the folder where you want to save the postprocessing outputs
-output_location = [analysis_dir filesep 'derivatives' filesep 'preprocessed/erp_check'];
 save_location = [analysis_dir filesep 'derivatives' filesep 'preprocessed/csd_data'];
 % 3. this is the correct channel location file BUT INCORRECT PATH!
 
@@ -86,7 +78,13 @@ parfor subject = 1:length(datafile_names)
     try
 	% extract participant number
         subNumText = datafile_names{subject}(5:11);
-
+        output_file_path = fullfile(save_location, datafile_names{subject});
+        
+        % Check if the file already exists in the save location
+        if exist(output_file_path, 'file')
+            fprintf('Subject %s: File already processed. Skipping...\n', subNumText);
+            continue;
+        end
 	%load the original data set
 	EEG = pop_loadset('filename', datafile_names{subject}, 'filepath', datafile_paths{subject});
 	EEG = eeg_checkset(EEG);
@@ -95,6 +93,8 @@ parfor subject = 1:length(datafile_names)
 	EEG = pop_selectevent(EEG, 'latency','-.1 <= .1','deleteevents','on');
 	EEG = eeg_checkset(EEG);
 	fprintf('Subject %s: Processing %d events\n', subNumText, length(EEG.event));
+        
+        % Perform CSD transformation on each epoch
         data = zeros(size(EEG.data), 'single');
 	for ne = 1:length(EEG.epoch)
             myEEG = single(EEG.data(:, :, ne));

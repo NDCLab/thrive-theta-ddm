@@ -7,7 +7,6 @@
 ## To run, this script requires some additional R packages to be installed, the rcpp file, as well as a data file.
 sink(sprintf("output_log_%s.txt", format(Sys.time(),'%y-%m-%d_%H-%M-%S')), split = TRUE)
 rm(list = ls())
-print("TEST")
 start_time <- Sys.time()
 
 #------------------------------------------------------------------------------
@@ -194,8 +193,9 @@ fitFunctionSSP <- function(
 
 library("DEoptim")
 library("Rcpp")
-analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
-# analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
+library("dplyr")
+# analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
+analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
 
 # set up default parms and upper/lower values (for now, not using default values, just upper/lower with DEoptim)
 Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
@@ -203,7 +203,7 @@ Lower <- c(0.032, 0.180, 0.130, 0.0001, 0.493); #mean of white 2011 Exp1 minus 5
 numParams <- length(Upper)
 
 # how many trials to simulate per condition 
-nTrials = 10
+nTrials = 10000
 
 data_dir = sprintf("%sderivatives/behavior/", analysis_path)
 input_data <-sprintf("%sfull_df.csv", data_dir)
@@ -229,17 +229,19 @@ importDat <- subset(importDat,
 # find only subjects with both valid soc and nonsoc condition and subset them
 thrive_id_soc <- read.csv(sprintf("%sthrive_data_soc.csv", data_dir), header = TRUE)
 thrive_id_nonsoc <- read.csv(sprintf("%sthrive_data_nonsoc.csv", data_dir), header = TRUE)
-importDat <- subset(importDat, importDat$sub %in% intersect(thrive_id_soc$sub, thrive_id_nonsoc$sub))
-
+already_fitted <- read.csv("fitted_id.csv", header = TRUE)
+#importDat <- subset(importDat, importDat$sub %in% intersect(thrive_id_soc$sub, thrive_id_nonsoc$sub))
+importDat <- bind_rows(thrive_id_soc, thrive_id_nonsoc)
+importDat <- subset(importDat, !(importDat$sub %in% (already_fitted$sub)))
 # convert rt values from ms to secs to be consistent with rest of script
 # importDat$rt <- as.numeric(importDat$rt / 1000)
-
+print(unique(importDat$sub))  
 # get sub list
-subList <- (unique(importDat$sub))
+subList <- (unique(importDat$sub))[37:40]
 
 # initialize output vector 
-fitOutput <-data.frame(matrix(ncol=10, nrow=0))
-colnames(fitOutput) <- c("subject", "a", "ter", "p", "rd", "sda", "fitStat", "iterNum", "pre_accuracy", "condition_soc")
+fitOutput <-data.frame(matrix(ncol=11, nrow=0))
+colnames(fitOutput) <- c("subject", "a", "ter", "p", "rd", "sda", "fitStat", "iterNum", "pre_accuracy", "condition_soc", "seed")
 fitOutput <- data.frame(fitOutput)
 # also write a .csv to append parms to at the end of loops
 write.csv(fitOutput, FitOutputName, row.names=FALSE, na="", quote = F)
@@ -301,7 +303,10 @@ for (cond in 1:2) {
       
       # pull out data for this condition (for this subject)
       preacc_data <- subset(dataCondSoc, dataCondSoc$pre_accuracy == preAccuracy) # this is for having post-err/corr conditions
-      
+     
+      seed <- sample(1:10e6, 1)
+      set.seed(seed)  # For reproducibility
+ 
       # Loop over congruency conditions
       for (i in 1:2) {
         # clear out variable for this iteration of loop
@@ -430,7 +435,7 @@ for (cond in 1:2) {
         control = DEoptim.control(
           itermax = 200,
           steptol = 20,
-          parallelType = "auto",
+          parallelType = 1,
           packages = c("Rcpp"),
           parVar = c("nTrials","cutPoints","humanProps","HumanTrialCounts")
           ),
@@ -470,7 +475,7 @@ for (cond in 1:2) {
       
       newRow<- NULL 
       # make new row with values created above
-      newRow <- data.frame(subject, bestParms1, bestParms2, bestParms3, bestParms4, bestParms5, bestFitStat, iter, preAccuracy, conditionSoc)
+      newRow <- data.frame(subject, bestParms1, bestParms2, bestParms3, bestParms4, bestParms5, bestFitStat, iter, preAccuracy, conditionSoc, seed)
       
       # appending the parms to the csv created before the loops
       write.table(newRow, file=FitOutputName, sep=",", append=TRUE, col.names = FALSE, row.names = FALSE)

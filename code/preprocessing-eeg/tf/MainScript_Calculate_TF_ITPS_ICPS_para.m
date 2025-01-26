@@ -19,7 +19,7 @@ main_dir = '/home/data/NDClab/analyses/thrive-theta-ddm'; %directory on the HPC
 data_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'csd_data'];
 
 %2. Save Data Location
-save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep 'main' filesep 'stim' filesep];
+save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep 'main' filesep 'resp' filesep];
 %disp(save_location)
 % Create output folders to save data
 if exist(save_location, 'dir') == 0
@@ -61,7 +61,7 @@ RestorEvent = 0; %1 = rest, 0 = event
 %}
 % RESPONSE CONDITIONS
 %Conds = {
-%'resp_s_i_0',...
+'resp_s_i_0',...
 %'resp_s_i_1',...
 %'resp_s_c_1',...
 %'resp_ns_i_0',...
@@ -70,14 +70,14 @@ RestorEvent = 0; %1 = rest, 0 = event
 %}; % resp_i_0 = incong error response; resp_i_1 = incong correct response
 
 % STIMULUS CONDITIONS
-Conds = {
+%Conds = {
 %'stim_s_i_0',...
 %'stim_s_i_1',...
 %'stim_s_c_1',...
 %'stim_ns_i_0',...
 %'stim_ns_i_1',...
-'stim_ns_c_1',...
-}; % resp_i_0 = incong error stim; resp_i_1 = incong correct response
+%'stim_ns_c_1',...
+%}; % resp_i_0 = incong error stim; resp_i_1 = incong correct response
 
 %8. Minimum number of trials to analyze
 mintrialnum = 6; %If the participant does not have enough trials in a condition based on this cutoff, a "notenoughdata.mat" file will be saved into save_location.
@@ -144,10 +144,26 @@ Elecs4Connect = { '1' '2' '3' '4' '5' '6' '7' '8' '9' '10' '11' '12' '13' '14' '
 
 % 20. Create List of subjects to loop through
 subnum = dir([data_location filesep '*.set']); % Use regex to find your files 
-subject= {subnum.name};
+subject = {subnum.name};
 for ii=1:length(subject)
     subject_list{ii}=subject{ii};   
 end
+already_processed = dir([save_location filesep 'TF' filesep '*.mat']);
+already_processed = {already_processed.name};
+
+% Initialize an empty cell array to store the extracted parts
+processed_ids = {};
+
+% Loop through each filename and extract the sub-xxxxxxx part
+for i = 1:length(already_processed)
+    filename = already_processed{i};
+    % Use regular expression to find the sub-xxxxxxx part
+    match = regexp(filename, '^sub-\d+', 'match');
+    if ~isempty(match)
+        processed_ids{end+1} = match{1}; % Append the match to the cell array
+    end
+end
+
 %TrialNums = struct('subject', {}, 'condition', {}, 'TrialNum', {});
 %TrialNums(34*length(Conds)).subject = '';  % Pre-allocate for max possible size
 %TrialNums(34*length(Conds)).condition = '';
@@ -176,6 +192,13 @@ parfor sub=1:length(subject_list)
     
     subject = subject_list{sub};
     fprintf('\n\n\n*** Processing subject %d (%s) ***\n\n\n', sub, subject);
+
+    % Check if subject was already processed
+    match = regexp(subject, '^sub-\d+', 'match');
+    if ismember(match, processed_ids)
+        fprintf('%s: is already processed. Skipping...\n', match);
+        continue;
+    end
 
     % Load data
     EEG=pop_loadset('filename', [subject], 'filepath', data_location);
@@ -557,7 +580,7 @@ parfor sub=1:length(subject_list)
                             end %end loop through frequencies
                             if Downsample ==0
                                 %save out trial averaged and baseline corrected TF data for this subject for this condition    
-                                save_data =[save_location, subject(1:end-4),DatasetName,'_TF_baselinecorrected_', 'condition',Conds{cond}];
+                                save_data =[save_location, subject(1:end-4),DatasetName,'_TF_baselinecorrected_', 'condition_',Conds{cond}];
                                 %save(save_data, 'timefreqs_baselinecorr', 'frequency', 'time','channel_location', '-v7.3');
                                 parsave(save_data, ...
                                 'timefreqs_baselinecorr', timefreqs_baselinecorr, ...
@@ -573,7 +596,7 @@ parfor sub=1:length(subject_list)
                                 ds_time = downsample(time,2);
                                 
                                 %save out trial averaged, downsampled, baseline corrected TF data for this subject for this condition
-                                save_data =[save_location, subject(1:end-4),DatasetName,'_TF_baselinecorrected_', 'condition',Conds{cond}];
+                                save_data =[save_location, subject(1:end-4),DatasetName,'_TF_baselinecorrected_', 'condition_',Conds{cond}];
                                 %save(save_data, 'timefreqs_baselinecorr', 'frequency', 'ds_time','channel_location', '-v7.3');
                                 parsave(save_data, ...
                                 'timefreqs_baselinecorr', timefreqs_baselinecorr, ...
@@ -587,7 +610,7 @@ parfor sub=1:length(subject_list)
                             
                             if Downsample ==0
                                 %save out trial averaged and non-baseline corrected TF data
-                                save_data =[save_location, subject(1:end-4),DatasetName,'_TF_nobaselinecorrection_', 'condition',Conds{cond}];
+                                save_data =[save_location, subject(1:end-4),DatasetName,'_TF_nobaselinecorrection_', 'condition_',Conds{cond}];
                                 %save(save_data, 'timefreqs_data', 'frequency', 'time','channel_location', '-v7.3');
                                 parsave(save_data, ...
                                 'timefreqs_data', timefreqs_data, ...
@@ -602,7 +625,7 @@ parfor sub=1:length(subject_list)
                                 ds_time = downsample(time,2);
                                 
                                 %save out trial averaged and non-baseline corrected TF data
-                                save_data =[save_location, subject(1:end-4),DatasetName,'_TF_nobaselinecorrection_', 'condition',Conds{cond}];
+                                save_data =[save_location, subject(1:end-4),DatasetName,'_TF_nobaselinecorrection_', 'condition_',Conds{cond}];
                                 %save(save_data, 'timefreqs_data', 'frequency', 'ds_time','channel_location', '-v7.3');
                                 parsave(save_data, ...
                                 'timefreqs_data', timefreqs_data, ...
@@ -719,7 +742,7 @@ parfor sub=1:length(subject_list)
                                          elseif RestorEvent==0
                                              if Downsample ==0
                                                  %save out trial averaged and baseline corrected ITPS data for this subject
-                                                 save_data =[save_location, subject(1:end-4),DatasetName,'_ITPS_baselinecorrected_','condition',Conds{cond}];
+                                                 save_data =[save_location, subject(1:end-4),DatasetName,'_ITPS_baselinecorrected_','condition_',Conds{cond}];
                                                  %save(save_data, 'ITPS_blncorr', 'frequency', 'time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
                                                  'ITPS_blncorr', ITPS_blncorr, ...
@@ -734,7 +757,7 @@ parfor sub=1:length(subject_list)
                                                  ds_time = downsample(time,2);
                                                  
                                                  %save out trial averaged and baseline corrected ITPS data for this subject
-                                                 save_data =[save_location, subject(1:end-4),DatasetName,'_ITPS_baselinecorrected_','condition',Conds{cond}];
+                                                 save_data =[save_location, subject(1:end-4),DatasetName,'_ITPS_baselinecorrected_','condition_',Conds{cond}];
                                                  %save(save_data, 'ITPS_blncorr', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
                                                  'ITPS_blncorr', ITPS_blncorr, ...
@@ -775,7 +798,7 @@ parfor sub=1:length(subject_list)
                                          elseif RestorEvent==0 %if event-related, then save condition name in save file
                                              if Downsample ==0
                                                  %save out trial averaged and baseline corrected ITPS data for this subject
-                                                 save_data =[save_location, subject(1:end-4),DatasetName,'_ITPS_nobaselinecorrection_','condition',Conds{cond}];
+                                                 save_data =[save_location, subject(1:end-4),DatasetName,'_ITPS_nobaselinecorrection_','condition_',Conds{cond}];
                                                  %save(save_data, 'ITPS_all', 'frequency', 'time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
                                                  'ITPS_all', ITPS_all, ...
@@ -790,7 +813,7 @@ parfor sub=1:length(subject_list)
                                                  ds_time = downsample(time,2);
                                                  
                                                  %save out trial averaged, downsampled, and baseline corrected ITPS data for this subject
-                                                 save_data =[save_location, subject(1:end-4),DatasetName,'_ITPS_nobaselinecorrection_','condition',Conds{cond}];
+                                                 save_data =[save_location, subject(1:end-4),DatasetName,'_ITPS_nobaselinecorrection_','condition_',Conds{cond}];
                                                  %save(save_data, 'ITPS_all', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
                                                  'ITPS_all', ITPS_all, ...
@@ -929,7 +952,7 @@ parfor sub=1:length(subject_list)
                                                  'channel_location', channel_location);
                                             elseif RestorEvent==0
                                                 %save out trial averaged and baseline corrected ICPS data for this subject
-                                                save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_nobaselinecorrection_','condition',Conds{cond}];
+                                                save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_nobaselinecorrection_','condition_',Conds{cond}];
                                                 %save(save_data, 'ICPS_all', 'frequency', 'time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
                                                  'ICPS_all', ICPS_all, ...
@@ -979,7 +1002,7 @@ parfor sub=1:length(subject_list)
                                                 elseif RestorEvent==0 %if event-related, add condition name to saved file
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected ICPS data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_baselinecorrected_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_baselinecorrected_','condition_',Conds{cond}];
                                                         %save(save_data, 'ICPS_blncorr', 'frequency', 'time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'ICPS_blncorr', ICPS_blncorr, ...
@@ -994,7 +1017,7 @@ parfor sub=1:length(subject_list)
                                                         ds_time = downsample(time,2);
                                                         
                                                         %save out trial averaged, downsampled, and baseline corrected ICPS data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_baselinecorrected_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_baselinecorrected_','condition_',Conds{cond}];
                                                         %save(save_data, 'ICPS_blncorr', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'ICPS_blncorr', ICPS_blncorr, ...
@@ -1033,7 +1056,7 @@ parfor sub=1:length(subject_list)
                                                 elseif RestorEvent==0 %Event-Related
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected ICPS data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_nobaselinecorrection_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_nobaselinecorrection_','condition_',Conds{cond}];
                                                         %save(save_data, 'ICPS_all', 'frequency', 'time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'ICPS_all', ICPS_all, ...
@@ -1048,7 +1071,7 @@ parfor sub=1:length(subject_list)
                                                         ds_time = downsample(time,2);
                                                         
                                                         %save out trial averaged and baseline corrected ICPS data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_nobaselinecorrection_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_nobaselinecorrection_','condition_',Conds{cond}];
                                                         %save(save_data, 'ICPS_all', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'ICPS_all', ICPS_all, ...
@@ -1167,7 +1190,7 @@ parfor sub=1:length(subject_list)
                                                  'channel_location', channel_location);
                                             elseif RestorEvent==0
                                                 %save out trial averaged and baseline corrected ICPS data for this subject
-                                                save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtime_nobaselinecorrection_','condition',Conds{cond}];
+                                                save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtime_nobaselinecorrection_','condition_',Conds{cond}];
                                                 %save(save_data, 'ICPS_all', 'frequency', 'time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
                                                  'ICPS_all', ICPS_all, ...
@@ -1221,7 +1244,7 @@ parfor sub=1:length(subject_list)
                                                 elseif RestorEvent==0
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected ICPS data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtrials_baselinecorrected_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtrials_baselinecorrected_','condition_',Conds{cond}];
                                                         %save(save_data, 'ICPS_blncorr', 'frequency', 'time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'ICPS_blncorr', ICPS_blncorr, ...
@@ -1236,7 +1259,7 @@ parfor sub=1:length(subject_list)
                                                         ds_time = downsample(time,2);
                                                         
                                                         %save out trial averaged and baseline corrected ICPS data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtrials_baselinecorrected_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtrials_baselinecorrected_','condition_',Conds{cond}];
                                                         %save(save_data, 'ICPS_blncorr', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'ICPS_blncorr', ICPS_blncorr, ...
@@ -1275,7 +1298,7 @@ parfor sub=1:length(subject_list)
                                                 elseif RestorEvent==0 %Event-Related
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected ICPS data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtrials_nobaselinecorrection_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtrials_nobaselinecorrection_','condition_',Conds{cond}];
                                                         parsave(save_data, ...
                                                         'ICPS_all', ICPS_all, ...
                                                         'frequency', frequency, ...
@@ -1290,7 +1313,7 @@ parfor sub=1:length(subject_list)
                                                         ds_time = downsample(time,2);
                                                         
                                                         %save out trial averaged and baseline corrected ICPS data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtrials_nobaselinecorrection_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_ICPS_overtrials_nobaselinecorrection_','condition_',Conds{cond}];
                                                         %save(save_data, 'ICPS_all', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'ICPS_all', ICPS_all, ...
@@ -1431,7 +1454,7 @@ parfor sub=1:length(subject_list)
                                                  'channel_location', channel_location);
                                             elseif RestorEvent==0
                                                 %save out trial averaged and baseline corrected wPLI data for this subject
-                                                save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtime_nobaselinecorrection_','condition',Conds{cond}];
+                                                save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtime_nobaselinecorrection_','condition_',Conds{cond}];
                                                 %save(save_data, 'wPLI_all', 'frequency', 'time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
                                                  'wPLI_all', wPLI_all, ...
@@ -1481,7 +1504,7 @@ parfor sub=1:length(subject_list)
                                                 elseif RestorEvent==0 %if event-related, add condition name to saved file
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected wPLI data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected_','condition_',Conds{cond}];
                                                         %save(save_data, 'wPLI_blncorr', 'frequency', 'time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'wPLI_blncorr', wPLI_blncorr, ...
@@ -1496,7 +1519,7 @@ parfor sub=1:length(subject_list)
                                                         ds_time = downsample(time,2);
                                                         
                                                         %save out trial averaged, downsampled, and baseline corrected wPLI data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected_','condition_',Conds{cond}];
                                                         %save(save_data, 'wPLI_blncorr', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'wPLI_blncorr', wPLI_blncorr, ...
@@ -1535,7 +1558,7 @@ parfor sub=1:length(subject_list)
                                                 elseif RestorEvent==0 %Event-Related
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected wPLI data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_nobaselinecorrection_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_nobaselinecorrection_','condition_',Conds{cond}];
                                                         %save(save_data, 'wPLI_all', 'frequency', 'time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'wPLI_all', wPLI_all, ...
@@ -1550,7 +1573,7 @@ parfor sub=1:length(subject_list)
                                                         ds_time = downsample(time,2);
                                                         
                                                         %save out trial averaged and baseline corrected wPLI data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_nobaselinecorrection_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_nobaselinecorrection_','condition_',Conds{cond}];
                                                         %save(save_data, 'wPLI_all', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'wPLI_all', wPLI_all, ...
@@ -1674,7 +1697,7 @@ parfor sub=1:length(subject_list)
                                                  'channel_location', channel_location);
                                             elseif RestorEvent==0
                                                 %save out trial averaged and baseline corrected wPLI data for this subject
-                                                save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtime_nobaselinecorrection_','condition',Conds{cond}];
+                                                save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtime_nobaselinecorrection_','condition_',Conds{cond}];
                                                 %save(save_data, 'wPLI_all', 'frequency', 'time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
                                                  'wPLI_all', wPLI_all, ...
@@ -1728,7 +1751,7 @@ parfor sub=1:length(subject_list)
                                                 elseif RestorEvent==0 %if event-related, add condition name to saved file
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected wPLI data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected_','condition_',Conds{cond}];
                                                         %save(save_data, 'wPLI_blncorr', 'frequency', 'time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'wPLI_blncorr', wPLI_blncorr, ...
@@ -1743,7 +1766,7 @@ parfor sub=1:length(subject_list)
                                                         ds_time = downsample(time,2);
                                                         
                                                         %save out trial averaged, downsampled, and baseline corrected wPLI data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected_','condition_',Conds{cond}];
                                                         %save(save_data, 'wPLI_blncorr', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'wPLI_blncorr', wPLI_blncorr, ...
@@ -1782,7 +1805,7 @@ parfor sub=1:length(subject_list)
                                                 elseif RestorEvent==0 %Event-Related
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected wPLI data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_nobaselinecorrection_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_nobaselinecorrection_','condition_',Conds{cond}];
                                                         %save(save_data, 'wPLI_all', 'frequency', 'time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'wPLI_all', wPLI_all, ...
@@ -1797,7 +1820,7 @@ parfor sub=1:length(subject_list)
                                                         ds_time = downsample(time,2);
                                                         
                                                         %save out trial averaged and baseline corrected wPLI data for this subject
-                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_nobaselinecorrection_','condition',Conds{cond}];
+                                                        save_data =[save_location, subject(1:end-4),DatasetName,'_wPLI_overtrials_nobaselinecorrection_','condition_',Conds{cond}];
                                                         %save(save_data, 'wPLI_all', 'frequency', 'ds_time','channel_location', '-v7.3');
                                                         parsave(save_data, ...
                                                         'wPLI_all', wPLI_all, ...
