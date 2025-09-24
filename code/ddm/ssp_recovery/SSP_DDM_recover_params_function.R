@@ -195,22 +195,27 @@ recover_params <- function(start_idx, end_idx) {
 	# analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
 	# analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
 	analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
-	output_sim_path <- sprintf("%s/derivatives/behavior/ddm_recovery/sim_data/", analysis_path)
-	output_fit_path <- sprintf("%s/derivatives/behavior/ddm_recovery/fit_data/", analysis_path)
+	output_sim_path <- sprintf("%s/derivatives/behavior/ddm_recovery/sim_data/2018_500/", analysis_path)
+	output_fit_path <- sprintf("%s/derivatives/behavior/ddm_recovery/fit_data/2018_500/", analysis_path)
 
 	# how many trials to simulate per condition
 	#nTrials_to_sim = c(50, 100, 200, 500, 1000, 5000)
 	#nTrials_to_sim = c(5, 10, 25)
         #nTrials_to_sim = c(12, 14, 16, 18, 20)
-        nTrials_to_sim = c(6, 7, 8, 9)
+        #nTrials_to_sim = c(6, 7, 8, 9)
+        nTrials_to_sim = c(6, 8, 10, 12)
 
 	dt <- 0.001
 	vari <- 0.01
 
 	# set up default parms and upper/lower values (for now, not using default values, just upper/lower with DEoptim)
-	Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
-	Lower <- c(0.032, 0.180, 0.130, 0.0001, 0.493); #mean of white 2011 Exp1 minus 5 sd
-	nTrials <- 10000
+	#Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
+	#Lower <- c(0.032, 0.180, 0.130, 0.0001, 0.493); #mean of white 2011 Exp1 minus 5 sd
+        # TWO LINES BELOW ADDED 2/9/2025 FZ
+	Upper <- c(.19, .45, .55, .026,  2.6); # from White 2018: a ter p rd sda
+        Lower <- c(.07, .15, .2, .01, 1); # from White 2018: a ter p rd sda
+
+        nTrials <- 10000
 	output_fit_file <- sprintf(
 	  "recovered_params_%s.csv",
 	  format(Sys.time(),'%y_%m_%d_%H_%M_%S') # will indicate start time
@@ -225,7 +230,7 @@ recover_params <- function(start_idx, end_idx) {
 
 	for (condition in nTrials_to_sim) {
 	  
-	  for (cb in seq(1, 100)[start_idx:end_idx]) {
+	  for (cb in seq(1, 500)[start_idx:end_idx]) {
 	    start_time <- Sys.time()
 	    seed <- cb + sample(1:10e6, 1)
 	    set.seed(seed)  # For reproducibility

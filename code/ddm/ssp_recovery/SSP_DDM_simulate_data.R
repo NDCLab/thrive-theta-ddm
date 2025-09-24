@@ -9,24 +9,31 @@ library("DEoptim")
 library("Rcpp")
 # analysis_path = "/Users/fzaki001/thrive-theta-ddm/" # local
 analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
-output_sim_path <- sprintf("%s/derivatives/behavior/ddm_recovery/sim_data/", analysis_path)
-output_fit_path <- sprintf("%s/derivatives/behavior/ddm_recovery/fit_data/", analysis_path)
+output_sim_path <- sprintf("%s/derivatives/behavior/ddm_recovery/sim_data/2018_500/", analysis_path)
+output_fit_path <- sprintf("%s/derivatives/behavior/ddm_recovery/fit_data/2018_500/", analysis_path)
 
 # set up parameter range to sample for simulation of data
 Upper <- c(.19, .45, .55, .026,  2.6); # from White 2018: a ter p rd sda
 Lower <- c(.07, .15, .2, .01, 1); # from White 2018: a ter p rd sda
+#Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
+#Lower <- c(0.032, 0.180, 0.130, 0.0001, 0.493); #mean of white 2011 Exp1 minus 5 sd
+
 numParams <- length(Upper)
 
 # how many trials to simulate per condition
 #nTrials_to_sim = c(50, 100, 200, 500, 1000, 5000)
-nTrials_to_sim = c(5, 10, 25)
+#nTrials_to_sim = c(5, 10, 25)
+#nTrials_to_sim = c(12, 14, 16, 18, 20)
+#nTrials_to_sim = c(6, 7, 8, 9)
+#nTrials_to_sim = c(5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 50, 100, 200, 500, 1000, 5000)
+nTrials_to_sim = c(6, 8, 10, 12)
 
 dt <- 0.001
 vari <- 0.01
 
 for (condition in nTrials_to_sim) {
   
-  for (cb in seq(1, 100)) {
+  for (cb in seq(1, 500)) {
     set.seed(cb)  # For reproducibility
     output_sim_file <- sprintf("%s/sim_data_%s_%s.csv", output_sim_path, condition, cb)
     

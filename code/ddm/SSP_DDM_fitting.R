@@ -8,7 +8,11 @@
 sink(sprintf("output_log_%s.txt", format(Sys.time(),'%y-%m-%d_%H-%M-%S')), split = TRUE)
 rm(list = ls())
 start_time <- Sys.time()
-
+args <- commandArgs(trailingOnly = TRUE)
+print(args)
+# You can then assign these to variables
+startIdx <- args[1]
+endIdx <- args[2]
 #------------------------------------------------------------------------------
 # Fit function for the SSP model
 fitFunctionSSP <- function(
@@ -198,8 +202,11 @@ library("dplyr")
 analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/" # HPC
 
 # set up default parms and upper/lower values (for now, not using default values, just upper/lower with DEoptim)
-Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
-Lower <- c(0.032, 0.180, 0.130, 0.0001, 0.493); #mean of white 2011 Exp1 minus 5 sd
+#Upper <- c(0.232, 0.420, 0.630, 0.067,  3.093); #mean of white 2011 Exp1 plus 5 sd
+#Lower <- c(0.032, 0.180, 0.130, 0.0001, 0.493); #mean of white 2011 Exp1 minus 5 sd
+Upper <- c(.19, .45, .55, .026,  2.6); # from White 2018: a ter p rd sda
+Lower <- c(.07, .15, .2, .01, 1); # from White 2018: a ter p rd sda
+
 numParams <- length(Upper)
 
 # how many trials to simulate per condition 
@@ -208,7 +215,7 @@ nTrials = 10000
 data_dir = sprintf("%sderivatives/behavior/", analysis_path)
 input_data <-sprintf("%sfull_df.csv", data_dir)
 FitOutputName <-sprintf(
-  "%sddm_output_data_%s.csv",
+  "%sfitting_2018/ddm_output_data_%s.csv",
   data_dir,
   format(Sys.time(),'%y-%m-%d_%H-%M-%S') # will indicate start time
   ) 
@@ -229,20 +236,27 @@ importDat <- subset(importDat,
 # find only subjects with both valid soc and nonsoc condition and subset them
 thrive_id_soc <- read.csv(sprintf("%sthrive_data_soc.csv", data_dir), header = TRUE)
 thrive_id_nonsoc <- read.csv(sprintf("%sthrive_data_nonsoc.csv", data_dir), header = TRUE)
-already_fitted <- read.csv("fitted_id.csv", header = TRUE)
+
+#already_fitted <- read.csv("fitted_id.csv", header = TRUE)
 #importDat <- subset(importDat, importDat$sub %in% intersect(thrive_id_soc$sub, thrive_id_nonsoc$sub))
-importDat <- bind_rows(thrive_id_soc, thrive_id_nonsoc)
-importDat <- subset(importDat, !(importDat$sub %in% (already_fitted$sub)))
+
+idDat <- bind_rows(thrive_id_soc, thrive_id_nonsoc)
+
+#importDat <- subset(importDat, !(importDat$sub %in% (already_fitted$sub)))
+
 # convert rt values from ms to secs to be consistent with rest of script
 # importDat$rt <- as.numeric(importDat$rt / 1000)
-print(unique(importDat$sub))  
+
+print(unique(idDat$sub))  
 # get sub list
-subList <- (unique(importDat$sub))[37:40]
+subList <- (unique(idDat$sub))[startIdx:endIdx]
+print(subList)
 
 # initialize output vector 
 fitOutput <-data.frame(matrix(ncol=11, nrow=0))
 colnames(fitOutput) <- c("subject", "a", "ter", "p", "rd", "sda", "fitStat", "iterNum", "pre_accuracy", "condition_soc", "seed")
 fitOutput <- data.frame(fitOutput)
+
 # also write a .csv to append parms to at the end of loops
 write.csv(fitOutput, FitOutputName, row.names=FALSE, na="", quote = F)
 
@@ -272,7 +286,7 @@ for (cond in 1:2) {
     
     # pull out data for this subject
     subData <- subset(importDat, importDat$sub == subList[s])
-    
+    print(sprintf("sub-%s data shape: %s", s, dim(subData)))
     # pull out data for this subject for the context condition picked in the above loop
     dataCondSoc <- subset(subData, subData$condition_soc == conditionSoc) #this is for social/non-social condition
     
@@ -423,7 +437,7 @@ for (cond in 1:2) {
       print(
         sprintf(
           "Start fitting model for sub-%s: condition_soc=%s pre_accuracy=%s",
-          subList[s], preAccuracy, conditionSoc
+          subList[s], conditionSoc, preAccuracy
           )
         )
       # print(c(modelStart, s, subList[s], " pre_accuracy: ", preAccuracy, " condition_soc: ", conditionSoc))
@@ -435,7 +449,7 @@ for (cond in 1:2) {
         control = DEoptim.control(
           itermax = 200,
           steptol = 20,
-          parallelType = 1,
+          parallelType = 'auto',
           packages = c("Rcpp"),
           parVar = c("nTrials","cutPoints","humanProps","HumanTrialCounts")
           ),
@@ -450,7 +464,7 @@ for (cond in 1:2) {
       print(
         sprintf(
           "%s sub-%s: condition_soc=%s pre_accuracy=%s",
-          modelFinished, subList[s], preAccuracy, conditionSoc
+          modelFinished, subList[s], conditionSoc, preAccuracy
         )
       )
       # print(c(modelFinished, s, subList[s], " pre_accuracy: ", preAccuracy, " condition_soc: ", conditionSoc))
@@ -482,7 +496,7 @@ for (cond in 1:2) {
     } # end loop through pre_acc conditions (c)
     s_end_time <- Sys.time()
     print(sprintf(
-      "%s condition_soc: %s,  finished in %s minutes",
+      "%s condition_soc: %s, finished in %s minutes",
       subList[s],
       conditionSoc,
       round((s_end_time - s_start_time) / 60, 2)

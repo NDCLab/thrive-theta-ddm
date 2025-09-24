@@ -6,6 +6,7 @@ import numpy as np
 import re
 import time
 import datetime
+
 pd.options.mode.chained_assignment = None
 
 def convert_to_list_rt(series):
@@ -33,27 +34,31 @@ def convert_to_list_resp(series):
     return resp_list
 
 start = time.time()
+session = sys.argv[1]
 
+#session = "s1_r1"
 input_dataset_path = "/home/data/NDClab/datasets/thrive-dataset/"
 output_dataset_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"
 data_path = "sourcedata/checked/"
-sub_path = "s1_r1/psychopy/"
-output_path = "derivatives/behavior/"
+sub_path = f"{session}/psychopy/"
+output_path = f"derivatives/behavior/{session}/"
 
-date_time = datetime.datetime.now().strftime("%d-%m-%Y_%H_%M_%S")
+date_time = datetime.datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
 sys.stdout = open(f"{output_dataset_path}{output_path}{date_time}_log.txt","wt")
 
 n_blocks = 20
 n_trials = 40
 valid_rt_thresh = 0.150
 
-sub_folders = [i for i in os.listdir(input_dataset_path + data_path) if i.startswith("sub-")]
-subjects = sorted([re.findall(r'\d+', item)[0] for item in sub_folders])
-
+#sub_folders = [i for i in os.listdir(input_dataset_path + data_path) if i.startswith("sub-")]
+sub_folders = glob.glob(f"{input_dataset_path}/{data_path}/sub-*/{sub_path}/*")
+subjects = sorted(set([re.findall(r'\d+', item.split("/")[-4])[0] for item in sub_folders]))
+print(subjects)
 processing_log = dict()
 summary_columns = [
             "n_trials", "invalid_rt_percent", "skipped_percent",
             "acc", "acc_con", "acc_incon", "rt_con", "rt_incon", "rt_corr", "rt_err",
+            "rt_con_log", "rt_incon_log", "rt_corr_log", "rt_err_log",
             "pes", "pea", "peri_acc", "peri_rt", "6_or_more_err",
             ]
 processing_log["sub"] = []
@@ -72,17 +77,19 @@ for sub in subjects:
     processing_log["sub"].append(sub)    
     subject_folder = (input_dataset_path + data_path + "sub-" + sub + os.sep + sub_path)
     num_files = len(os.listdir(subject_folder))
-    
-    if (num_files != 3) and (sub not in ["3000124", "3000008", "3000014"]):
+    if ((num_files != 3) and (sub not in ["3000124", "3000008", "3000014"]) and session == "s1_r1") or (np.any(["deviation" in i for i in os.listdir(subject_folder)])):
         processing_log["success"].append(0)
         print("sub-{} has a deviation in psychopy data ({} files), skipping ...".format(sub, num_files))
         [processing_log[i].append(np.nan) for i in list(processing_log.keys())[2:]]
         pass
+#    elif:
+#       os.path.exists(f"{output_dataset_path}{output_path}sub-{sub}_trial_data.csv"):
+#        print(f"sub-{sub} is already processed! Skipping...")
     else:
         print("Processing sub-{}...".format(sub))
         processing_log["success"].append(1)
         
-        pattern = "{}sub-{}_arrow-alert-v1-*_psychopy_s1_r1_e1.csv".format(subject_folder, sub)
+        pattern = f"{subject_folder}/sub-{sub}_arrow-alert-v1-*_psychopy_{session}_e1.csv"
         filename = glob.glob(pattern)
         data = pd.read_csv(filename[0])
         start_index = data["task_blockText.started"].first_valid_index()
@@ -218,9 +225,13 @@ for sub in subjects:
             processing_log["acc_con"+prefix].append(np.round(condition_data[condition_data["congruent"] == 1].accuracy.mean(), 3))
             processing_log["acc_incon"+prefix].append(np.round(condition_data[condition_data["congruent"] == 0].accuracy.mean(), 3))
             processing_log["rt_con"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 1) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
+            processing_log["rt_con_log"+prefix].append(np.round(np.log(condition_data[(condition_data["congruent"] == 1) & (condition_data["accuracy"] == 1)]["rt"]).mean() * 1000, 3))            
             processing_log["rt_incon"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
+            processing_log["rt_incon_log"+prefix].append(np.round(np.log(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]).mean() * 1000, 3))
             processing_log["rt_corr"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean() * 1000, 3))
+            processing_log["rt_corr_log"+prefix].append(np.round(np.log(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]).mean() * 1000, 3))
             processing_log["rt_err"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 0)]["rt"].mean() * 1000, 3))
+            processing_log["rt_err_log"+prefix].append(np.round(np.log(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 0)]["rt"]).mean() * 1000, 3))
             condition_data = condition_data[(condition_data["pre_valid_rt"] == 1) & (condition_data["pre_extra_resp"] == 0) & (condition_data["pre_no_resp"] == 0)]
             processing_log["pes"+prefix].append(np.round(
                 np.log(
@@ -277,14 +288,14 @@ for sub in subjects:
         
         print(f"sub-{sub} has been processed")
 
-pd.DataFrame(processing_log).to_csv(f"{output_dataset_path}{output_path}summary.csv", index=False)
+pd.DataFrame(processing_log).to_csv(f"{output_dataset_path}{output_path}summary_{date_time}.csv", index=False)
 
 list_of_ind_csv = []
 for df in sorted([i for i in os.listdir(f"{output_dataset_path}{output_path}") if "sub-" in i]):
     list_of_ind_csv.append(pd.read_csv(f"{output_dataset_path}{output_path}{df}"))
 full_df = pd.concat(list_of_ind_csv)
 # full_df = full_df[(full_df["pre_accuracy"] == 1) | (full_df["pre_accuracy"] == 0)]
-full_df.to_csv(f"{output_dataset_path}{output_path}full_df.csv", index = False)
+full_df.to_csv(f"{output_dataset_path}{output_path}full_df_{date_time}.csv", index = False)
 
 end = time.time()
 print(f"Executed time {np.round(end - start, 2)} s")

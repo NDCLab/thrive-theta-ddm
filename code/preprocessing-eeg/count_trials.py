@@ -1,3 +1,5 @@
+import sys
+import re
 import mne
 import io
 import numpy as np
@@ -67,7 +69,11 @@ def disp_diff_arr(arr1, arr2, round = 5):
     for idx, (val1, val2) in enumerate(zip(diff_elements_1, diff_elements_2)):
         print(f"Difference at {diff_indices[idx]}: {np.round(val1, round)} vs {np.round(val2, round)}")
 
-sys.stdout = open(f"{analysis_path}derivatives/preprocessed/erp_check/{datetime.datetime.now()_log.txt","wt")
+dataset_path = "/home/data/NDClab/datasets/thrive-dataset/"
+analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"
+pattern = r'sub-(\d+)'
+
+sys.stdout = open(f"{analysis_path}derivatives/preprocessed/erp_check/{datetime.datetime.now()}_log.txt","wt")
 
 trial_data = dict({
         "sub": [],
@@ -81,9 +87,6 @@ trial_data = dict({
         "ns_stim_con_corr": [],
 })
 
-dataset_path = "/home/data/NDClab/datasets/thrive-dataset/"
-analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"
-
 sub_ids = sorted([i.split("/")[-1] for i in glob(
         f"{dataset_path}derivatives/preprocessed/sub-*")])
 
@@ -95,7 +98,7 @@ list_of_eeg_file = sorted(
 start = time.time()
 
 for file_idx, filename in enumerate(list_of_eeg_file):
-    sub_id = sub_ids[file_idx].split("-")[-1]
+    sub_id = re.search(pattern, filename).group(1)
     trial_data["sub"].append(sub_id)
     EEG = scipy.io.loadmat(filename, squeeze_me=True, struct_as_record=False)["EEG"]
     EEG_mne = mne.io.read_epochs_eeglab(filename, verbose = 'ERROR',)
@@ -118,7 +121,7 @@ for file_idx, filename in enumerate(list_of_eeg_file):
             drop_idx.append(i)
     
     events = [ev for ev in events if list(events).index(ev) in drop_idx]
-    print(f"sub-{}: {len(events)} good events were found!")
+    print(f"sub-{sub_id}: {len(events)} good events were found!", flush=True)
     
     trial_data["s_resp_incon_error"].append(len(
         [ev for ev in events if\
@@ -179,4 +182,4 @@ for file_idx, filename in enumerate(list_of_eeg_file):
 end = time.time()
 print(f"Executed time {np.round(end - start, 2)} s")
 
-trial_data.to_csv(f"{analysis_path}derivatives/preprocessed/erp_check/thrive_trialCounts_RespAndStim_{datetime.datetime.now()}_py.csv", index = False)
+pd.DataFrame(trial_data).to_csv(f"{analysis_path}derivatives/preprocessed/erp_check/thrive_trialCounts_RespAndStim_{datetime.datetime.now()}_py.csv", index = False)
