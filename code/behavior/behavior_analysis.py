@@ -325,7 +325,7 @@ for sub in subjects:
     # print([len(processing_log[i]) for i in list(processing_log.keys())]) 
     print(f"sub-{sub} has been processed")
 
-pd.DataFrame(processing_log).to_csv(f"{output_dataset_path}{output_path}summary_{date_time}.csv", index=False)
+pd.DataFrame(processing_log).to_csv(f"{output_dataset_path}{output_path}summary_{session}_{date_time}.csv", index=False)
 
 list_of_ind_csv = []
 for df in sorted([i for i in os.listdir(f"{output_dataset_path}{output_path}") if "sub-" in i]):

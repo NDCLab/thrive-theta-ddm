@@ -24,6 +24,12 @@ addpath(genpath('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standa
 rmpath(['/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeglab13_4_4b' filesep 'functions' filesep 'octavefunc' filesep 'signal'])
 
 %% setup; run this section before any other section below
+%modifying above, to account for files named differently
+%specify parameters of data to process
+task = 'all';
+procStage = 'processed_data';
+visitDirName = 's1_r1'; %visit folder does not list "e1"
+visitFileName = 's1_r1_e1'; %file names include "e1" designation
 
 %location of analysis folder
 analysis_dir = '/home/data/NDClab/analyses/thrive-theta-ddm';
@@ -37,15 +43,8 @@ dataset_dir = '/home/data/NDClab/datasets/thrive-dataset';
 data_location = [dataset_dir filesep 'derivatives' filesep 'preprocessed'];
 
 % 2. Enter the path of the folder where you want to save the postprocessing outputs
-save_location = [analysis_dir filesep 'derivatives' filesep 'preprocessed/csd_data'];
+save_location = [analysis_dir filesep 'derivatives' filesep 'preprocessed/csd_data' filesep visitDirName];
 % 3. this is the correct channel location file BUT INCORRECT PATH!
-
-%modifying above, to account for files named differently
-%specify parameters of data to process
-task = 'all';
-procStage = 'processed_data';
-visitDirName = 's1_r1'; %visit folder does not list "e1"
-visitFileName = 's1_r1_e1'; %file names include "e1" designation
 
 % Read files to analyses
 datafile_info=dir([data_location filesep 'sub-*' filesep visitDirName filesep 'eeg' filesep 'sub-*_' task '_eeg_*' procStage '_' visitFileName '.set']);

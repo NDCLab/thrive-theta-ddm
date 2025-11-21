@@ -93,7 +93,7 @@ addpath(genpath('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standa
 %Location of EEGlab
 %addpath(genpath([main_dir filesep 'code' filesep 'eeglab13_4_4b']));% enter the path of the EEGLAB folder in this line
 addpath(genpath('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeglab13_4_4b'));% enter the path of the EEGLAB folder in this line
-
+addpath(pwd);
 %remove path to octave functions inside matlab to prevent errors when
 %rmpath([main_dir filesep 'code' filesep 'eeglab13_4_4b' filesep 'functions' filesep 'octavefunc' filesep 'signal'])
 rmpath(['/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeglab13_4_4b' filesep 'functions' filesep 'octavefunc' filesep 'signal'])
@@ -134,9 +134,13 @@ adjust_time_offset = 1; % 0 = NO (no correction), 1 = YES (correct time offset)
 stimulus_markers = {'S  1', 'S  2', 'S  3', 'S  4', 'S 41', 'S 42', 'S 43', ...
     'S 44', 'S 51', 'S 52', 'S 53', 'S 54'}; % enter the stimulus markers that need to be adjusted for time offset % fine only if we dont adjust for onset, not even used further in the code
 response_markers = {}; % enter the response makers that need to be adjusted for time offset % same as line above !!!
-stim_offset_list = [11.46, 12, 12.77, 12.32, 10.91, 10.44]; % results of all conducted timings tests for sys1 & sys2
+stim_offset_list = [11.46, 12.77, 12.32, 10.07, 11.12, 11.52, 10.75, 11.42, 11.46, 11.45, 10.71, 10.91, 10.3, 10.69, 11.42, ... 
+11.74, 12.82, 10.82, 11.81, 11.24, 11.5];  % results of all conducted timings tests for sys1 & sys2
 stimulus_timeoffset = round(mean(stim_offset_list)); % stimulus related time offset (in milliseconds). 0 = No time offset
-
+max_stim_count = 400;
+stim_count_thresh = 360;
+stim_events_nonsoc = {'S 41', 'S 42', 'S 43', 'S 44'};
+stim_events_soc = {'S 51', 'S 52', 'S 53', 'S 54'};
 % 5. Do you want to down sample the data?
 down_sample = 1; % 0 = NO (no down sampling), 1 = YES (down sampling)
 sampling_rate = 1000; % set sampling rate (in Hz), if you want to down sample
@@ -205,6 +209,7 @@ subjects_to_process = strcat("sub-", subjects_to_process);
 %for file_locater_counter = 1:length(subjects_to_process) % This for loop lists the folders containing the main data files
 parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         try
+        disp('DEBUG 1');
         subjStart = tic;
         %rawdata_location = fullfile(rawdata_location_parent, subjects_to_process(file_locater_counter));
         rawdata_location = fullfile(rawdata_location_parent, subjects_to_process(file_locater_counter), session, 'eeg'); % updated to work with checked data
@@ -224,13 +229,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             %continue
             error(['Cannot find vhdr file / files in ' rawdata_location ', skipping.']);
         end
-
+        % display(sprintf('DATAFILE NAMES: %s', datafile_names));
         % Enter the path of the folder where you want to save the processed data
-	% output_location = fullfile('/home/data/NDClab/analyses/thrive-theta-ddm', 'derivatives', 'preprocessed', 'test', '4cpu', subjects_to_process(file_locater_counter), session, 'eeg' );
         output_location = fullfile(main_dir, 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
+        output_location = fullfile('/home/data/NDClab/analyses/thrive-theta-ddm/', 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
         % update the output_location
         output_location = char(output_location);
-
+        disp('DEBUG 2');
         % write each sub to different logfile in output dir
         [~, vhdr_file, ~] = fileparts(subjects_to_process(file_locater_counter));
         if exist([output_location filesep 'MADE_logfiles'], 'dir') == 0
@@ -238,29 +243,43 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         end
         dfile=fullfile(output_location, 'MADE_logfiles', [char(vhdr_file) '_' datestr(now,'mm-dd-yyyy_HH:MM:SS') '.log']);
         diary(dfile)
-
-        corrected=dir([rawdata_location filesep 'deviation.txt']);
+        disp('DEBUG 3');
+        % corrected=dir([rawdata_location filesep 'deviation.txt']);
+        corrected = dir([rawdata_location filesep '*deviation*.txt']);
+        disp('DEBUG 4');
         if length({corrected.name}) ~= 0
-            corrected=1
-            devFile = readlines([rawdata_location filesep 'deviation.txt']);
-            vhdrFound = 0;
-            for i = 1:length(devFile)
-                if startsWith(lower(devFile(i)), "files to process:")
-                    line = devFile(i).split(':');
-                    filesToProcess = strip(line(2).split(','));
-                    filesToProcess = filesToProcess(endsWith(filesToProcess(:), "vhdr")); %only need vhdrs
-                    vhdrFound = 1;
-                end
+            corrected=1;
+            disp('DEBUG 5');
+            disp(rawdata_location);
+            [stim_count_nonsoc, stim_count_soc] = stim_cnt_check_thrive(rawdata_location);
+            disp('DEBUG 6');
+            if stim_count_nonsoc == max_stim_count && stim_count_soc == max_stim_count % all markers are present
+                deviation_category = 1;
+                disp('DEBUG 7');
+            elseif stim_count_nonsoc < stim_count_thresh && stim_count_soc < stim_count_thresh % not enough markers in both conditions, will not process
+                datafile_names = {};                
+                disp('DEBUG 8');
+                deviation_category = 2;
+            else % some markers are absent
+                deviation_category = 3;
+                datafile_names = datafile_names{1};
             end
-            if vhdrFound
-                datafile_names = cellstr(filesToProcess');
-            else
-                datafile_names = {};
-            end
+          %  devFile = readlines([rawdata_location filesep 'deviation.txt']);
+          %  vhdrFound = 0;
+          %  vhdr_files = dir([rawdata_location filesep '*.vhdr']);
+          %  if length({vhdr_files.name}) ~= 0
+          %          vhdrFound = 1;
+          %  end
+          %  if vhdrFound
+          %      datafile_names = check_eeg_integrity();
+          %  else
+          %      datafile_names = {};
+          %  end
         else
-            corrected=0
+            corrected=0;
         end
-
+        disp('DEBUG 9');
+        % display(sprintf('DATAFILE NAMES: %s', datafile_names));
         %% Check whether EEGLAB and all necessary plugins are in Matlab path.
         if exist('eeglab','file')==0
             error(['Please make sure EEGLAB is on your Matlab path. Please see EEGLAB' ...
@@ -286,7 +305,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         if exist([output_location], 'dir') == 0
             mkdir([output_location])
         end
-
+        disp('DEBUG 10');
         %% Initialize output variables
         reference_used_for_faster=[]; % reference channel used for running faster to identify bad channel/s
         faster_bad_channels=[]; % number of bad channel/s identified by faster
@@ -302,35 +321,27 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
 
         % switch to output directory
         cd(output_location);
-
+        disp('DEBUG 11');
+        % display(sprintf('DATAFILE NAMES: %s', datafile_names));
         for subject=1:length(datafile_names)
-            % "subject" is actually task, subjects_to_process are subjects
+            % "subject" is actually a single EEG file (its index) within a given subject folder from subjects_to_process list
             %[filepath,name,ext] = fileparts(char(datafile_names{subject}));
-            vhdr_filename = datafile_names{subject};
+            % vhdr_filename = datafile_names{subject};
             filename_re = regexp(datafile_names{subject}, '^(sub-[0-9]+)_([a-zA-Z0-9_-]+)_(s[0-9]+_r[0-9]+_e[0-9]+)(\.[a-z0-9]+)$', 'tokens');
-            if length(filename_re) == 0 && corrected == 0
-                warning(['File name ' datafile_names{subject} ' in ' rawdata_location ' does not match conventions, skipping.']);
+            disp('DEBUG 12');
+            disp(filename_re);
+            disp(datafile_names);
+            % filename_re = regexp(datafile_names{subject}, '^(sub-[0-9]+)_([a-zA-Z0-9_-]+)_(s[0-9]+_r[0-9]+_e[0-9]+)_?([a-zA-Z0-9_-]*)(\.[a-z0-9]+)$', 'tokens');
+            if length(filename_re) == 0 && corrected == 0 % file named incorrectly and no deviation found, we don't want to process these because those should be noted in deviation
+                warning(['File name ' datafile_names{subject} ' in ' rawdata_location ' does not match  conventions-1, skipping.']);
                 continue
             % EEG files with a deviation.txt in the folder may have an additional description before ".vhdr" and after "s1_r1_e1"
-            elseif length(filename_re) == 0 && corrected == 1
-                filename_re = regexp(datafile_names{subject}, '^(sub-[0-9]+)_([a-zA-Z0-9_-]+)_(s[0-9]+_r[0-9]+_e[0-9]+)_?([a-zA-Z0-9_-]*)(\.[a-z0-9]+)$', 'tokens');
-                if length(filename_re) == 0
-                    warning(['File name ' datafile_names{subject} ' in ' rawdata_location ' does not match conventions, skipping.']);
-                    continue
-                else
-                    [subj, task, sess, desc, ext] = filename_re{1}{:};
-                    if length(desc) == 0
-                        %output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess '.csv'];
-                        output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess];
-                    else
-                        %output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess '_' desc '.csv'];
-                        output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess '_' desc];
-                        desc = ['_' desc];
-                    end
-                end
-            else
+            elseif length(filename_re) == 0 && corrected == 1 % file named incorrectly but there was a deviation, we want to process a merged file here
+                filename_re = regexp(datafile_names{subject}, '^(sub-[0-9]+)_([a-zA-Z0-9_-]+)_(s[0-9]+_r[0-9]+_e[0-9]+)_([a-zA-Z0-9_-]+)(\.[a-z0-9]+)$', 'tokens');
+                [subj, task, sess, desc, ext] = filename_re{1}{:};
+                output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess];
+            else % correct file without deviation
                 [subj, task, sess, ext] = filename_re{1}{:};
-		desc = '';
                 output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess];
             end
 
@@ -352,7 +363,23 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             %% STEP 1: Import EEG data file and relevant information
 
             %load in raw data
-            EEG = pop_loadbv(rawdata_location, datafile_names{subject});
+            if corrected == 1
+                disp('DEBUG 13');
+                if deviation_category == 2 % not enough markers in both conditions, skip
+                    disp('Not enough data in both conditions. Skip...');
+                    continue
+                else % all other cases, merge and process
+                    disp('DEBUG 14');
+                    EEG = load_and_merge_2(rawdata_location);
+                    EEG_copy_for_faster=[];
+                    EEG_copy_for_faster=EEG; % make a copy of the dataset
+                    EEG_copy_for_faster = eeg_checkset(EEG_copy_for_faster); 
+                    disp('DEBUG 15');
+                end
+            else
+                EEG = pop_loadbv(rawdata_location, datafile_names{subject});
+            end
+            disp('DEBUG 16');
             EEG = eeg_checkset(EEG);
 
             %% STEP 4: Change sampling rate
@@ -542,7 +569,19 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 channels_analysed=EEG.chanlocs;
                 reference_used_for_faster={EEG.chanlocs(ref_chan).labels};
             end
-
+            if corrected == 1
+               eeg_pieces = make_eeg_pieces(EEG_copy_for_faster);
+               FASTbadChans = {};
+               for f=1:length(eeg_pieces)
+                   segment_bad_chs = preprocess_eeg_piece(eeg_pieces{f}, channel_locations, stimulus_timeoffset);
+                   disp('DEBUG 17');i
+                   FASTbadChans{f} = reshape(segment_bad_chs, 1, []);
+                   % FASTbadChans{f} = segment_bad_chs;
+                   disp('DEBUG 18');
+               end
+               FASTbadChans = unique([FASTbadChans{:}]);
+               disp('DEBUG 18');
+            end
             % If FASTER identifies all channels as bad channels, save the dataset
             % at this stage and ignore the remaining of the preprocessing.
             if numel(FASTbadChans)==EEG.nbchan || numel(FASTbadChans)+1==EEG.nbchan
@@ -552,11 +591,14 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                     EEG = eeg_checkset(EEG);
                     %EEG = pop_editset(EEG, 'setname',  strrep(datafile_names{subject}, ext, '_no_usable_data_all_bad_channels'));
                     %EEG = pop_saveset(EEG, 'filename', strrep(datafile_names{subject}, ext, '_no_usable_data_all_bad_channels.set'),'filepath', [output_location filesep 'processed_data' filesep ]); % save .set format
-                    EEG = pop_editset(EEG, 'setname', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
-                    EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                    %EEG = pop_editset(EEG, 'setname', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
+                    %EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                    EEG = pop_editset(EEG, 'setname', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess));
+                    EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,'.set'),'filepath', [output_location filesep ]); % save .set format
                 elseif output_format==2
                     %save([[output_location filesep 'processed_data' filesep ] strrep(datafile_names{subject}, ext, '_no_usable_data_all_bad_channels.mat')], 'EEG'); % save .mat format
-                    parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.mat')], EEG); % save .mat format
+                    %parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.mat')], EEG); % save .mat format
+                    parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,'.mat')], EEG); % save .mat format
                 end
             else
                 % Reject channels that are bad as identified by Faster
@@ -592,18 +634,21 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 writetable(report_table, [output_report_path '.csv'], "WriteMode", "append");
                 continue % ignore rest of the processing and go to next subject
             end
-
+            disp('DEBUG 19');
             %% Save data after running filter and FASTER function, if saving interim results was preferred
             if save_interim_result ==1
                 if output_format==1
                     EEG = eeg_checkset( EEG );
-                    EEG = pop_editset(EEG, 'setname', strcat(subj,'_',task,'_filtered_data_',sess,desc));
-                    EEG = pop_saveset( EEG,'filename',strcat(subj,'_',task,'_filtered_data_',sess,desc,'.set'),'filepath', [output_location filesep]); % save .set format
+                    %EEG = pop_editset(EEG, 'setname', strcat(subj,'_',task,'_filtered_data_',sess,desc));
+                    %EEG = pop_saveset( EEG,'filename',strcat(subj,'_',task,'_filtered_data_',sess,desc,'.set'),'filepath', [output_location filesep]); % save .set format
+                    EEG = pop_editset(EEG, 'setname', strcat(subj,'_',task,'_filtered_data_',sess));
+                    EEG = pop_saveset( EEG,'filename',strcat(subj,'_',task,'_filtered_data_',sess,'.set'),'filepath', [output_location filesep]); % save .set format
                 elseif output_format==2
-                    parsave([[output_location filesep ] strcat(subj,'_',task,'_filtered_data_',sess,desc,'.mat')], EEG); % save .mat format
+                    %parsave([[output_location filesep ] strcat(subj,'_',task,'_filtered_data_',sess,desc,'.mat')], EEG); % save .mat format
+                    parsave([[output_location filesep ] strcat(subj,'_',task,'_filtered_data_',sess,'.mat')], EEG); % save .mat format
                 end
             end
-
+            disp('DEBUG 20');
             %% STEP 8: Prepare data for ICA
             EEG_copy=[];
             EEG_copy=EEG; % make a copy of the dataset
@@ -640,7 +685,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             for ch=1:EEG_copy.nbchan
                 % Find artifaceted epochs by detecting outlier voltage
                 EEG_copy = pop_eegthresh(EEG_copy,1, ch, vol_thrs(1), vol_thrs(2), EEG_copy.xmin, EEG_copy.xmax, 0, 0);
-                EEG_copy = eeg_checkset( EEG_copy );
+                EEG_copy = eeg_checkset(EEG_copy);
 
                 % 1         : data type (1: electrode, 0: component)
                 % 0         : display with previously marked rejections? (0: no, 1: yes)
@@ -657,8 +702,8 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 % eegplotreject         : 0 = Do not reject marked trials (but store the  marks).
 
                 % Find number of artifacted epochs
-                EEG_copy = eeg_checkset( EEG_copy );
-                EEG_copy = eeg_rejsuperpose( EEG_copy, 1, 1, 1, 1, 1, 1, 1, 1);
+                EEG_copy = eeg_checkset(EEG_copy);
+                EEG_copy = eeg_rejsuperpose(EEG_copy, 1, 1, 1, 1, 1, 1, 1, 1);
                 artifacted_epochs=EEG_copy.reject.rejglobal;
 
                 % Find bad channel / channel with more than 20% artifacted epochs
@@ -674,10 +719,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 warning(['No usable data for datafile', datafile_names{subject}]);
                 if output_format==1
                     EEG = eeg_checkset(EEG);
-                    EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,desc));
-                    EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                    %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,desc));
+                    %EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                    EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess));
+                    EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,'.set'),'filepath', [output_location filesep ]); % save .set format
                 elseif output_format==2
-                    parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,desc,'.mat')], EEG); % save .mat format
+                    %parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,desc,'.mat')], EEG); % save .mat format
+                    parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,'.mat')], EEG); % save .mat format
                 end
 
             else
@@ -792,16 +840,17 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             if save_interim_result==1
                 if output_format==1
                     EEG = eeg_checkset(EEG);
-                    EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_ica_data_',sess,desc));
-                    EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_ica_data_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                    %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_ica_data_',sess,desc));
+                    %EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_ica_data_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                    EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_ica_data_',sess));
+                    EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_ica_data_',sess,'.set'),'filepath', [output_location filesep ]); % save .set format
                 elseif output_format==2
-                    parsave([[output_location filesep ] strcat(subj,'_',task,'_ica_data_',sess,desc,'.mat')], EEG); % save .mat format
+                    %parsave([[output_location filesep ] strcat(subj,'_',task,'_ica_data_',sess,desc,'.mat')], EEG); % save .mat format
+                    parsave([[output_location filesep ] strcat(subj,'_',task,'_ica_data_',sess,'.mat')], EEG); % save .mat format
                 end
             end
-
-            %Ran up to here....
-
-            %no manual review/selection of ica artifact performed...
+            
+           %no manual review/selection of ica artifact performed...
 
             %% STEP 11: Remove artifacted ICA components from data
             all_bad_ICs=0;
@@ -813,10 +862,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 warning(['No usable data for datafile', datafile_names{subject}]);
                 if output_format==1
                     EEG = eeg_checkset(EEG);
-                    EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,desc));
-                    EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                    %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,desc));
+                    %EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                    EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess));
+                    EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,'.set'),'filepath', [output_location filesep ]); % save .set format
                 elseif output_format==2
-                    parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,desc,'.mat')], EEG); % save .mat format
+                    %parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,desc,'.mat')], EEG); % save .mat format
+                    parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,'.mat')], EEG); % save .mat format
                 end
             else
                 EEG = eeg_checkset( EEG );
@@ -839,7 +891,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
 
             %% STEP 12: Segment data into fixed length epochs
             %run event labeling script
-            EEG = edit_event_markers_thrive(EEG);
+            EEG = edit_event_markers_thrive(EEG); % researcher must make sure where this script runs from: from a labw devops folder or from their specific analysis folder
 
             if epoch_data==1
                 if task_eeg ==1 % task eeg
@@ -899,10 +951,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                         warning(['No usable data for datafile', datafile_names{subject}]);
                         if output_format==1
                             EEG = eeg_checkset(EEG);
-                            EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
-                            EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                            %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
+                            %EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                            EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess));
+                            EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,'.set'),'filepath', [output_location filesep ]); % save .set format
                         elseif output_format==2
-                            parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.mat')], EEG); % save .mat format
+                            %parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.mat')], EEG); % save .mat format
+                            parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,'.mat')], EEG); % save .mat format
                         end
                     else
                         EEG = pop_rejepoch( EEG, badepoch, 0);
@@ -949,10 +1004,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                         warning(['No usable data for datafile', datafile_names{subject}]);
                         if output_format==1
                             EEG = eeg_checkset(EEG);
-                            EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
-                            EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                            %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
+                            %EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                            EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess));
+                            EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,'.set'),'filepath', [output_location filesep ]); % save .set format
                         elseif output_format==2
-                            parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.mat')], EEG); % save .mat format
+                            %parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.mat')], EEG); % save .mat format
+                            parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,'.mat')], EEG); % save .mat format
                         end
                     else
                         EEG = pop_rejepoch(EEG, badepoch, 0);
@@ -970,10 +1028,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                     warning(['No usable data for datafile', datafile_names{subject}]);
                     if output_format==1
                         EEG = eeg_checkset(EEG);
-                        EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
-                        EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                        %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
+                        %EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                        EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess));
+                        EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,'.set'),'filepath', [output_location filesep ]); % save .set format
                     elseif output_format==2
-                        parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.mat')], EEG); % save .mat format
+                        %parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc,'.mat')], EEG); % save .mat format
+                        parsave([[output_location filesep ] strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,'.mat')], EEG); % save .mat format
                     end
                 else
                     EEG = pop_rejepoch(EEG,(EEG.reject.rejthresh), 0);
@@ -1033,15 +1094,21 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             %% Save processed data
             if output_format==1
                 EEG = eeg_checkset(EEG);
-                EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_processed_data_',sess,desc));
-                EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_processed_data_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_processed_data_',sess,desc));
+                %EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_processed_data_',sess,desc,'.set'),'filepath', [output_location filesep ]); % save .set format
+                EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_processed_data_',sess));
+                EEG = pop_saveset(EEG, 'filename', strcat(subj,'_',task,'_processed_data_',sess,'.set'),'filepath', [output_location filesep ]); % save .set format
             elseif output_format==2
-                parsave([[output_location filesep ] strcat(subj,'_',task,'_processed_data_',sess,desc,'.mat')], EEG); % save .mat format
+                %parsave([[output_location filesep ] strcat(subj,'_',task,'_processed_data_',sess,desc,'.mat')], EEG); % save .mat format
+                parsave([[output_location filesep ] strcat(subj,'_',task,'_processed_data_',sess,'.mat')], EEG); % save .mat format
             end
 
-            filtered_filename = [[output_location filesep ] strcat(subj,'_',task,'_filtered_data_',sess,desc)];
-            ica_filename = [[output_location filesep ] strcat(subj,'_',task,'_ica_data_',sess,desc)];
-            processed_filename = [[output_location filesep ] strcat(subj,'_',task,'_processed_data_',sess,desc)];
+            %filtered_filename = [[output_location filesep ] strcat(subj,'_',task,'_filtered_data_',sess,desc)];
+            %ica_filename = [[output_location filesep ] strcat(subj,'_',task,'_ica_data_',sess,desc)];
+            %processed_filename = [[output_location filesep ] strcat(subj,'_',task,'_processed_data_',sess,desc)];
+            filtered_filename = [[output_location filesep ] strcat(subj,'_',task,'_filtered_data_',sess)];
+            ica_filename = [[output_location filesep ] strcat(subj,'_',task,'_ica_data_',sess)];
+            processed_filename = [[output_location filesep ] strcat(subj,'_',task,'_processed_data_',sess)];
 
             if save_interim_result
                 if output_format==1
@@ -1086,8 +1153,9 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         subjEnd = toc(subjStart);
         fprintf('MADE pipeline completed for subject %s in %d hours %.3f minutes, continuing.\n', subjects_to_process(file_locater_counter), floor(subjEnd/3600), rem(subjEnd,3600)/60);
         diary off
-
-        catch
+        catch ME
+            curr_subj = subjects_to_process(file_locater_counter);
+            fprintf('ERROR: failed for subject %s. Reason: %s\n', curr_subj, ME.message);
             fprintf('ERROR: failed for subject %s, look at log in %s/MADE_logfiles for details, continuing.\n', subjects_to_process(file_locater_counter), output_location);
             any_usable_data = 0;
             report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...

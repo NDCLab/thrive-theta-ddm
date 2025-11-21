@@ -19,7 +19,7 @@ echo "flurm cpus per task: $SLURM_CPUS_PER_TASK"
 
 source activate base
 conda activate /home/fzaki001/.conda/envs/thrive-env
-conda run -n thrive-env python -u behavior_analysis.py $"s1_r1"
+conda run -n thrive-env python -u behavior_analysis.py $"s3_r1"
 
 errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")
 if [[ -z ${errors} ]]; then
