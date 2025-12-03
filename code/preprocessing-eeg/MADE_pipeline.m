@@ -232,7 +232,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         % display(sprintf('DATAFILE NAMES: %s', datafile_names));
         % Enter the path of the folder where you want to save the processed data
         output_location = fullfile(main_dir, 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
-        output_location = fullfile('/home/data/NDClab/analyses/thrive-theta-ddm/', 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
+        % output_location = fullfile('/home/data/NDClab/analyses/thrive-theta-ddm/', 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
         % update the output_location
         output_location = char(output_location);
         disp('DEBUG 2');
@@ -254,27 +254,19 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             [stim_count_nonsoc, stim_count_soc] = stim_cnt_check_thrive(rawdata_location);
             disp('DEBUG 6');
             if stim_count_nonsoc == max_stim_count && stim_count_soc == max_stim_count % all markers are present
+                datafiles_for_log = strjoin(datafile_names, ', ');;
+                datafile_names = {datafile_names{1}};
                 deviation_category = 1;
                 disp('DEBUG 7');
             elseif stim_count_nonsoc < stim_count_thresh && stim_count_soc < stim_count_thresh % not enough markers in both conditions, will not process
                 datafile_names = {};                
                 disp('DEBUG 8');
                 deviation_category = 2;
-            else % some markers are absent
+            else % some markers are absent, we will proces this file and handle the deviation
                 deviation_category = 3;
-                datafile_names = datafile_names{1};
+                datafiles_for_log = strjoin(datafile_names, ', ');;
+                datafile_names = {datafile_names{1}}; % because merging of all EEG files will happen before the preprocessing, here it's enough to only take the first file; otherwise, the later loop will iterate over the same merged file length(datafile_names) times
             end
-          %  devFile = readlines([rawdata_location filesep 'deviation.txt']);
-          %  vhdrFound = 0;
-          %  vhdr_files = dir([rawdata_location filesep '*.vhdr']);
-          %  if length({vhdr_files.name}) ~= 0
-          %          vhdrFound = 1;
-          %  end
-          %  if vhdrFound
-          %      datafile_names = check_eeg_integrity();
-          %  else
-          %      datafile_names = {};
-          %  end
         else
             corrected=0;
         end
@@ -344,7 +336,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 [subj, task, sess, ext] = filename_re{1}{:};
                 output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess];
             end
-
+            disp('DEBUG 12-1');
             %% Initialize EEG structure, output variables, and report table
             EEG=[]; %initialize eeg structure
             report_table = []; %report table that will be created and written to disk (appended) after processing completes for this participant
@@ -357,9 +349,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             total_epochs_before_artifact_rejection=[];
             total_epochs_after_artifact_rejection=[];
             total_channels_interpolated=[]; % total_channels_interpolated=faster_bad_channels+ica_preparation_bad_channels
-
-            fprintf('\n\n\n*** Processing subject %d (%s) ***\n\n\n', subject, datafile_names{subject});
-
+            if corrected == 1;
+                fprintf('\n\n\n*** Processing subject %d with a deviation; the files will be merged (%s) ***\n\n\n', subject, datafiles_for_log);
+            else
+                fprintf('\n\n\n*** Processing subject %d (%s) ***\n\n\n', subject, datafile_names{subject});
+            end
             %% STEP 1: Import EEG data file and relevant information
 
             %load in raw data
@@ -586,7 +580,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             % at this stage and ignore the remaining of the preprocessing.
             if numel(FASTbadChans)==EEG.nbchan || numel(FASTbadChans)+1==EEG.nbchan
                 all_chan_bad_FAST=1;
-                warning(['No usable data for datafile', datafile_names{subject}]);
+                if corrected == 1
+                    warning(['No usable data for datafile', datafiles_for_log]);
+                else
+                    warning(['No usable data for datafile', datafile_names{subject}]);
+                end
                 if output_format==1
                     EEG = eeg_checkset(EEG);
                     %EEG = pop_editset(EEG, 'setname',  strrep(datafile_names{subject}, ext, '_no_usable_data_all_bad_channels'));
@@ -626,8 +624,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 total_epochs_after_artifact_rejection=0;
                 total_channels_interpolated=0;
                 any_usable_data = 0;
-                report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
-                 {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                if corrected == 1
+                    report_table=table({datafiles_for_log}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                    {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                else
+                    report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                    {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                end
                 report_table.Properties.VariableNames={'datafile_names', 'date_processed', 'reference_used_for_faster', 'faster_bad_channels', ...
                  'ica_preparation_bad_channels', 'length_ica_data', 'total_ICs', 'ICs_removed', 'total_epochs_before_artifact_rejection', ...
                  'total_epochs_after_artifact_rejection', 'total_channels_interpolated', 'any_usable_data'};
@@ -716,7 +719,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             % If all channels are bad, save the dataset at this stage and ignore the remaining of the preprocessing.
             if numel(ica_prep_badChans)==EEG.nbchan || numel(ica_prep_badChans)+1==EEG.nbchan
                 all_bad_channels=1;
-                warning(['No usable data for datafile', datafile_names{subject}]);
+                if corrected == 1
+                    warning(['No usable data for datafile', datafiles_for_log]);
+                else
+                    warning(['No usable data for datafile', datafile_names{subject}]);
+                end
                 if output_format==1
                     EEG = eeg_checkset(EEG);
                     %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_channels_',sess,desc));
@@ -748,8 +755,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 total_epochs_after_artifact_rejection=0;
                 total_channels_interpolated=0;
                 any_usable_data = 0;
-                report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                if corrected == 1
+                    report_table=table({datafiles_for_log}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
                     {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                else
+                    report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                    {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                end
                 report_table.Properties.VariableNames={'datafile_names', 'date_processed', 'reference_used_for_faster', 'faster_bad_channels', ...
                     'ica_preparation_bad_channels', 'length_ica_data', 'total_ICs', 'ICs_removed', 'total_epochs_before_artifact_rejection', ...
                     'total_epochs_after_artifact_rejection', 'total_channels_interpolated', 'any_usable_data'};
@@ -818,9 +830,17 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             EEG_copy = eeg_checkset(EEG_copy);
 
             if save_interim_result==1
-                badICs = adjusted_ADJUST(EEG_copy, [[output_location filesep] strrep(datafile_names{subject}, ext, '_adjust_report')]);
+                if corrected == 1
+                    badICs = adjusted_ADJUST(EEG_copy, [[output_location filesep] strcat(subj, '_', task, '_processed_data_', sess, '_adjust_report')]);
+                else
+                    badICs = adjusted_ADJUST(EEG_copy, [[output_location filesep] strrep(datafile_names{subject}, ext, '_adjust_report')]);
+                end
             else
-                badICs = adjusted_ADJUST(EEG_copy, [[output_location filesep] strrep(datafile_names{subject}, ext, '_adjust_report')]);
+                if corrected == 1
+                    badICs = adjusted_ADJUST(EEG_copy, [[output_location filesep] strcat(subj, '_', task, '_processed_data_', sess, '_adjust_report')]);
+                else
+                    badICs = adjusted_ADJUST(EEG_copy, [[output_location filesep] strrep(datafile_names{subject}, ext, '_adjust_report')]);
+                end
             end
             close all;
 
@@ -859,7 +879,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             % If all ICs and bad, save data at this stage and ignore rest of the preprocessing for this subject.
             if numel(ICs2remove)==total_ICs
                 all_bad_ICs=1;
-                warning(['No usable data for datafile', datafile_names{subject}]);
+                if corrected == 1
+                    warning(['No usable data for datafile', datafiles_for_log]);
+                else
+                    warning(['No usable data for datafile', datafile_names{subject}]);
+                end
                 if output_format==1
                     EEG = eeg_checkset(EEG);
                     %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_ICs_',sess,desc));
@@ -880,8 +904,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 total_epochs_after_artifact_rejection=0;
                 total_channels_interpolated=0;
                 any_usable_data = 0;
-                report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                if corrected == 1
+                    report_table=table({datafiles_for_log}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
                     {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                else
+                    report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                    {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                end
                 report_table.Properties.VariableNames={'datafile_names', 'date_processed', 'reference_used_for_faster', 'faster_bad_channels', ...
                     'ica_preparation_bad_channels', 'length_ica_data', 'total_ICs', 'ICs_removed', 'total_epochs_before_artifact_rejection', ...
                     'total_epochs_after_artifact_rejection', 'total_channels_interpolated', 'any_usable_data'};
@@ -948,7 +977,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                     % If all epochs are artifacted, save the dataset and ignore rest of the preprocessing for this subject.
                     if sum(badepoch)==EEG.trials || sum(badepoch)+1==EEG.trials
                         all_bad_epochs=1;
-                        warning(['No usable data for datafile', datafile_names{subject}]);
+                        if corrected == 1
+                            warning(['No usable data for datafile', datafiles_for_log]);
+                        else
+                            warning(['No usable data for datafile', datafile_names{subject}]);
+                        end
                         if output_format==1
                             EEG = eeg_checkset(EEG);
                             %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
@@ -965,7 +998,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                     end
 
                     if all_bad_epochs==1
-                        warning(['No usable data for datafile', datafile_names{subject}]);
+                        if corrected == 1
+                            warning(['No usable data for datafile', datafiles_for_log]);
+                        else
+                            warning(['No usable data for datafile', datafile_names{subject}]);
+                        end
                     else
                         % Interpolate artifacted data for all reaming channels
                         badChans = zeros(EEG.nbchan, EEG.trials);
@@ -1001,7 +1038,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                     % If all epochs are artifacted, save the dataset and ignore rest of the preprocessing for this subject.
                     if sum(badepoch)==EEG.trials || sum(badepoch)+1==EEG.trials
                         all_bad_epochs=1;
-                        warning(['No usable data for datafile', datafile_names{subject}]);
+                        if corrected == 1
+                            warning(['No usable data for datafile', datafiles_for_log]);
+                        else
+                            warning(['No usable data for datafile', datafile_names{subject}]);
+                        end
                         if output_format==1
                             EEG = eeg_checkset(EEG);
                             %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
@@ -1025,7 +1066,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 % If all epochs are artifacted, save the dataset and ignore rest of the preprocessing for this subject.
                 if sum(EEG.reject.rejthresh)==EEG.trials || sum(EEG.reject.rejthresh)+1==EEG.trials
                     all_bad_epochs=1;
-                    warning(['No usable data for datafile', datafile_names{subject}]);
+                    if corrected == 1
+                        warning(['No usable data for datafile', datafiles_for_log]);
+                    else
+                        warning(['No usable data for datafile', datafile_names{subject}]);
+                    end
                     if output_format==1
                         EEG = eeg_checkset(EEG);
                         %EEG = pop_editset(EEG, 'setname',  strcat(subj,'_',task,'_no_usable_data_all_bad_epochs_',sess,desc));
@@ -1054,8 +1099,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 total_epochs_after_artifact_rejection=0;
                 total_channels_interpolated=0;
                 any_usable_data = 0;
-                report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                if corrected == 1
+                    report_table=table({datafiles_for_log}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
                     {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                else
+                    report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                    {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+                end
                 report_table.Properties.VariableNames={'datafile_names', 'date_processed', 'reference_used_for_faster', 'faster_bad_channels', ...
                     'ica_preparation_bad_channels', 'length_ica_data', 'total_ICs', 'ICs_removed', 'total_epochs_before_artifact_rejection', ...
                     'total_epochs_after_artifact_rejection', 'total_channels_interpolated', 'any_usable_data'};
@@ -1136,9 +1186,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
 
             %Create the report table for all the data files with relevant preprocessing outputs.
             any_usable_data = 1;
-            report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+            if corrected == 1
+                report_table=table({datafiles_for_log}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
                 {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
-
+            else
+                report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+            end
             report_table.Properties.VariableNames={'datafile_names', 'date_processed', 'reference_used_for_faster', 'faster_bad_channels', ...
                 'ica_preparation_bad_channels', 'length_ica_data', 'total_ICs', 'ICs_removed', 'total_epochs_before_artifact_rejection', ...
                 'total_epochs_after_artifact_rejection', 'total_channels_interpolated', 'any_usable_data'};
@@ -1158,8 +1212,13 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             fprintf('ERROR: failed for subject %s. Reason: %s\n', curr_subj, ME.message);
             fprintf('ERROR: failed for subject %s, look at log in %s/MADE_logfiles for details, continuing.\n', subjects_to_process(file_locater_counter), output_location);
             any_usable_data = 0;
-            report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+            if corrected == 1
+                report_table=table({datafiles_for_log}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
                 {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+            else
+                report_table=table({datafile_names{subject}}, {datetime('now')}, {reference_used_for_faster}, {faster_bad_channels}, {ica_preparation_bad_channels}, {length_ica_data}, ...
+                {total_ICs}, {ICs_removed}, {total_epochs_before_artifact_rejection}, {total_epochs_after_artifact_rejection}, {total_channels_interpolated}, {any_usable_data});
+            end
             report_table.Properties.VariableNames={'datafile_names', 'date_processed', 'reference_used_for_faster', 'faster_bad_channels', ...
                 'ica_preparation_bad_channels', 'length_ica_data', 'total_ICs', 'ICs_removed', 'total_epochs_before_artifact_rejection', ...
                 'total_epochs_after_artifact_rejection', 'total_channels_interpolated', 'any_usable_data'};
