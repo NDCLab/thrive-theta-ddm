@@ -124,10 +124,10 @@ function [EEG] =  load_and_merge(path, deviation_category)
 		found_bad_block = true;
 	    end
 	end
-	
-	if ~found_bad_block
-	    error('Social count is low, but all detected blocks seem full. No cuts made.');
-	end
+
+        if ~found_bad_block
+            fprintf('Social condition is incomplete (%d trials), but all detected blocks are full. Keeping condition as is.\n', stim_count_soc);
+        end	
     end
 
     % --- STEP 3: Evaluate NONSOCIAL Condition ---
@@ -167,10 +167,12 @@ function [EEG] =  load_and_merge(path, deviation_category)
 		found_bad_block = true;
 	    end
 	end
-	if ~found_bad_block
-	    error('Nonsocial count is low, but all detected blocks seem full. No cuts made.');
+
+        if ~found_bad_block
+	    fprintf('Nonsocial condition is incomplete (%d trials), but all detected blocks are full. Keeping condition as is.\n', stim_count_nonsoc);
 	end
     end
+
     % --- STEP 4: Execute Cuts ---
     if ~isempty(regions_to_cut)
 	regions_to_cut(:, 1) = max(1, regions_to_cut(:, 1));

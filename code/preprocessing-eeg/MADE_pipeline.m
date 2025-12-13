@@ -223,6 +223,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         datafile_names=dir([rawdata_location filesep '*.vhdr']);
         datafile_names=datafile_names(~ismember({datafile_names.name},{'.', '..', '.DS_Store'}));
         datafile_names={datafile_names.name};
+        n_vhdr_files = length(datafile_names);
         %[filepath,name,ext] = fileparts(char(datafile_names{1}));
         if length(datafile_names) == 0
             %warning(['Cannot find vhdr file / files in ' rawdata_location ', skipping.']);
@@ -259,6 +260,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 deviation_category = 1;
                 disp('DEBUG 7');
             elseif stim_count_nonsoc < stim_count_thresh && stim_count_soc < stim_count_thresh % not enough markers in both conditions, will not process
+                fprintf('The file does not have enough data in any of the conditions. %s will NOT be processed', datafile_names);
                 datafile_names = {};                
                 disp('DEBUG 8');
                 deviation_category = 2;
@@ -355,7 +357,6 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 fprintf('\n\n\n*** Processing subject %d (%s) ***\n\n\n', subject, datafile_names{subject});
             end
             %% STEP 1: Import EEG data file and relevant information
-
             %load in raw data
             if corrected == 1
                 disp('DEBUG 13');
@@ -564,17 +565,19 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 reference_used_for_faster={EEG.chanlocs(ref_chan).labels};
             end
             if corrected == 1
-               eeg_pieces = make_eeg_pieces(EEG_copy_for_faster);
-               FASTbadChans = {};
-               for f=1:length(eeg_pieces)
-                   segment_bad_chs = preprocess_eeg_piece(eeg_pieces{f}, channel_locations, stimulus_timeoffset);
-                   disp('DEBUG 17');i
-                   FASTbadChans{f} = reshape(segment_bad_chs, 1, []);
-                   % FASTbadChans{f} = segment_bad_chs;
-                   disp('DEBUG 18');
-               end
-               FASTbadChans = unique([FASTbadChans{:}]);
-               disp('DEBUG 18');
+                if n_vhdr_files ~= 1 % this condition ensures that EEG is preprocessed in pieces when there are atually pieces (i.e., only when 2 or more .vhdr files are present)
+                    eeg_pieces = make_eeg_pieces(EEG_copy_for_faster);
+                    FASTbadChans = {};
+                    for f=1:length(eeg_pieces)
+                        segment_bad_chs = preprocess_eeg_piece(eeg_pieces{f}, channel_locations, stimulus_timeoffset);
+                        disp('DEBUG 17');i
+                        FASTbadChans{f} = reshape(segment_bad_chs, 1, []);
+                        % FASTbadChans{f} = segment_bad_chs;
+                        disp('DEBUG 18');
+                    end
+                    FASTbadChans = unique([FASTbadChans{:}]);
+                    disp('DEBUG 18');
+                end
             end
             % If FASTER identifies all channels as bad channels, save the dataset
             % at this stage and ignore the remaining of the preprocessing.
