@@ -62,7 +62,7 @@ function [EEG] =  load_and_merge(path, deviation_category)
     
     % Step 5: Decide whether to remove blocks / conditions based on stimulus marker counts
     % New helper variables for the cutting logic
-    buffer_s = 10;                % Keep 1s of data before/after the cut to save ERPs
+    buffer_s = 5;                % Keep 5s of data before/after the cut to save EEG
     block_break_s = 6;           % A gap > 5s defines a "Block Break"
     trials_per_block = 40;
 
