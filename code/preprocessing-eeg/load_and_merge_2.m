@@ -82,12 +82,16 @@ function [EEG] =  load_and_merge(path, deviation_category)
     % --- STEP 2: Evaluate SOCIAL Condition ---
     if stim_count_soc < stim_count_thresh
 	% CASE: Too few trials -> Remove ENTIRE condition
-	fprintf('Social count (%d) < threshold. Removing entire condition.\n', stim_count_soc);
+        if stim_count_soc > 0
+	    fprintf('Social count (%d) < threshold. Removing entire condition.\n', stim_count_soc);
 	
 	% Define time window: (First Event - Buffer) to (Last Event + Buffer)
-	t_start = EEG.event(soc_indices(1)).latency - (buffer_s * EEG.srate);
-	t_end = EEG.event(soc_indices(end)).latency + (buffer_s * EEG.srate);
-	regions_to_cut = [regions_to_cut; t_start, t_end];
+	    t_start = EEG.event(soc_indices(1)).latency - (buffer_s * EEG.srate);
+	    t_end = EEG.event(soc_indices(end)).latency + (buffer_s * EEG.srate);
+	    regions_to_cut = [regions_to_cut; t_start, t_end];
+        else
+            fprintf('Social count is 0. Nothing to cut.\n');
+        end
 
     elseif stim_count_soc >= stim_count_thresh && stim_count_soc < max_stim_count
 	fprintf('Social count (%d) in warning zone. Searching for incomplete block...\n', stim_count_soc);
@@ -133,11 +137,15 @@ function [EEG] =  load_and_merge(path, deviation_category)
     % --- STEP 3: Evaluate NONSOCIAL Condition ---
     if stim_count_nonsoc < stim_count_thresh
 	% CASE: Too few trials -> Remove ENTIRE condition
-	fprintf('Nonsocial count (%d) < threshold. Removing entire condition.\n', stim_count_nonsoc);
+        if stim_count_nonsoc > 0
+	    fprintf('Nonsocial count (%d) < threshold. Removing entire condition.\n', stim_count_nonsoc);
 	
-	t_start = EEG.event(nonsoc_indices(1)).latency - (buffer_s * EEG.srate);
-	t_end   = EEG.event(nonsoc_indices(end)).latency + (buffer_s * EEG.srate);
-	regions_to_cut = [regions_to_cut; t_start, t_end];
+	    t_start = EEG.event(nonsoc_indices(1)).latency - (buffer_s * EEG.srate);
+	    t_end   = EEG.event(nonsoc_indices(end)).latency + (buffer_s * EEG.srate);
+	    regions_to_cut = [regions_to_cut; t_start, t_end];
+        else
+            fprintf('Nonsocial count is 0. Nothing to cut.\n');
+        end
 
     elseif stim_count_nonsoc >= stim_count_thresh && stim_count_nonsoc < max_stim_count
         fprintf('Nonsocial count (%d) in warning zone. Searching for incomplete block...\n', stim_count_nonsoc);

@@ -260,7 +260,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 deviation_category = 1;
                 disp('DEBUG 7');
             elseif stim_count_nonsoc < stim_count_thresh && stim_count_soc < stim_count_thresh % not enough markers in both conditions, will not process
-                fprintf('The file does not have enough data in any of the conditions. %s will NOT be processed', datafile_names);
+                fprintf('The file does not have enough data in any of the conditions. %s will NOT be processed', strjoin(datafile_names, ', '));
                 datafile_names = {};                
                 disp('DEBUG 8');
                 deviation_category = 2;
