@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#SBATCH --job-name=thrive_TF         # create a short name for your job
+#SBATCH --nodes=1             # node count
+#SBATCH --ntasks=1               # total number of tasks across all nodes
+#SBATCH --cpus-per-task=6
+#SBATCH --time=1000:00:00          # total run time limit (HH:MM:SS)
+#SBATCH --mem=200G
+#SBATCH --partition=highmem1
+#SBATCH --qos=highmem1
+#SBATCH --account=iacc_gbuzzell
+#SBATCH --output=%x-%j.out
+#SBATCH --mail-type=end          # send email when job ends
+#SBATCH --mail-user=fzaki001@fiu.edu
+
+module load matlab-2021b
+
+pwd; hostname; date
+echo "flurm cpus per task: $SLURM_CPUS_PER_TASK"
+
+sing_image="/home/data/NDClab/tools/instruments/containers/singularity/inst-container.simg"
+
+# only enable these linees if you want to run the slurm script directly; if running via a python batch-TF script, it will pass these arguments automatically
+# SESS="s2_r1"
+# COND="resp_ns_i_0"
+
+#matlab -nodisplay -nosplash -r "MainScript_Calculate_TF_ITPS_ICPS_para_s1"
+matlab -nodisplay -nosplash -r "session='$SESS'; condition_to_compute='$COND'; run('MainScript_Calculate_TF_ITPS_ICPS_para_s1.m');"
+
+errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")
+if [[ -z ${errors} ]]; then
+    echo "EEG preprocessing complete."
+else
+    echo "EEG preprocessing exited with errors: ${errors}"
+fi

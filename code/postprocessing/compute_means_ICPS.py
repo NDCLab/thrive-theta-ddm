@@ -8,9 +8,10 @@ import datetime
 import time
 import re
 import h5py
+import os
+import sys
 
-
-session = "s2_r1"
+session = sys.argv[1]
 dataset_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"
 
 arr_path = f"{dataset_path}/derivatives/preprocessed/TF_arrays/{session}/"
@@ -20,12 +21,24 @@ helper_data = h5py.File(
 
 freqs = helper_data['frequency'][:]
 times = helper_data['ds_time'][:]
+assert np.max(np.abs(times)) > 50, (
+    f"Time unit warning: Max time is {np.max(np.abs(times)):.2f}. "
+    "This looks like SECONDS. Convert 'times' to MS (times * 1000)."
+)
 ch_locs = [str(i) for i in range(1, 65)]
-
 
 # NOT DIFFERENCE ICPS
 
-thrive_data = pd.read_csv(f"{dataset_path}/derivatives/behavior/{session}/summary.csv")["sub"].to_frame()
+matching_files = glob(f"{dataset_path}/derivatives/behavior/{session}/*summary*{session}*.csv")
+
+# Check if any files were found
+if not matching_files:
+    print("No matching files found.")
+else:
+    # Find the newest file based on modification time
+    new_file_path = max(matching_files, key=os.path.getmtime)
+    thrive_data = pd.read_csv(new_file_path)["sub"].to_frame()
+    print(f"The newest file is: {new_file_path}")
 
 measures = [
     "ICPS",
@@ -41,6 +54,13 @@ conditions = [
 
 for m in measures:
     for c in conditions:
+        tf_arr = scipy.io.loadmat(f"{arr_path}/{m}_{c}.mat")
+        tf_data = tf_arr[f"{m}_{c}"]       
+        assert tf_data.shape[1:] == (64, 375, 59), f"Check your {m} data!"
+        sub_ids = tf_arr['subjects']
+        pattern = r'sub-(\d+)'
+        sub_ids = [int(re.search(pattern, i).group(1)) for i in sub_ids]
+
         for band in [
             "theta",
              # "delta"
@@ -58,11 +78,13 @@ for m in measures:
                     "MOTOR_R",
                     #"CENTRAL"
                 ]:
+                    ch = None
+
                     if cluster == "DLPFC_L":
                         ch = ['6', '9']
                     elif cluster == "DLPFC_R":
                         ch = ['39', '42']
-                    if cluster == "OCC_L":
+                    elif cluster == "OCC_L":
                         ch = ['22', '24']
                     elif cluster == "OCC_R":
                         ch = ['53', '55']
@@ -72,7 +94,9 @@ for m in measures:
                         ch = ['35', '40']
                     elif cluster == "CENTRAL":
                         ch = ['19', '50']
-                        
+
+                    assert ch is not None, f"Cluster {cluster} is not defined in channel map!"
+
                     if band == "theta":
                         fmin = 4
                         fmax = 7
@@ -104,12 +128,6 @@ for m in measures:
                     
                     # sub_idx = scipy.io.loadmat(f"{arr_path}/idx_{c}.mat")["sub_idx"][0]-1 # make it 0-based again
                     tf_df = pd.DataFrame(columns = ["sub", f"{m}_{c}_{band}_{window}_{cluster}"])
-                    tf_arr = scipy.io.loadmat(f"{arr_path}/{m}_{c}.mat")
-                    sub_ids = tf_arr['subjects']
-                    pattern = r'sub-(\d+)'
-                    sub_ids = [int(re.search(pattern, i).group(1)) for i in sub_ids]
-                    tf_data = tf_arr[f"{m}_{c}"]
-                    assert tf_data.shape[1:] == (64, 375, 59), f"Check your {m} data!"
                     
                     # for sub_id in sub_idx:
                     for sub_id in range(tf_data.shape[0]):
@@ -133,6 +151,7 @@ thrive_data = thrive_data[
 [i for i in thrive_data.columns if ("delta" not in i or i == "sub")]
 ]
 
+# note that this renaming logic would not work correctly if congruent conditions are requested above
 colnames = list(thrive_data.columns)
 for i, c in enumerate(colnames[1:]):
     i+=1
@@ -153,4 +172,4 @@ for i, c in enumerate(colnames[1:]):
 
 thrive_data.columns = colnames
 
-thrive_data.to_csv(f"{dataset_path}/derivatives/csv/{session}/thrive_icps.csv", index=False)
+thrive_data.to_csv(f"{dataset_path}/derivatives/csv/{session}/thrive_icps_{datetime.datetime.now()}.csv", index=False)

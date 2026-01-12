@@ -5,3 +5,4 @@
 # ignore data specific files
 derivatives/*
 */ipynb_checkpoints
+*.out

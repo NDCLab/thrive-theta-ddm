@@ -250,16 +250,37 @@ importDat <- subset(importDat,
 thrive_id_soc <- read.csv(sprintf("%sthrive_data_soc.csv", data_dir), header = TRUE)
 thrive_id_nonsoc <- read.csv(sprintf("%sthrive_data_nonsoc.csv", data_dir), header = TRUE)
 
-already_fitted <- read.csv("fitted_subjects_2025_10_14_21_44_27.csv", header = TRUE)
+# PASTE THE MOST RECENT FILE HERE MANUALLY
+# already_fitted <- read.csv("fitted_subjects_s1_r1_2025_12_27_23_54_17.csv", header = TRUE)
+
+file_list <- list.files(path = '/home/data/NDClab/analyses/thrive-theta-ddm/code/ddm/',
+                        pattern = "fitted_subjects.*\\.csv$",
+                        full.names = TRUE)
+
+if (length(file_list) > 0) {
+  file_details <- file.info(file_list)
+  latest_file <- rownames(file_details)[which.max(file_details$mtime)]
+  print(paste("The latest file found: ", latest_file))
+} else {
+  print("No fitted subject file found.")
+}
+
+# get the desired human data to fit the ssp model to
+already_fitted = read.csv(latest_file, header = TRUE) # data has header
+
 #importDat <- subset(importDat, importDat$sub %in% intersect(thrive_id_soc$sub, thrive_id_nonsoc$sub))
 
 idDat <- bind_rows(thrive_id_soc, thrive_id_nonsoc)
 
-idDat <- subset(idDat, !(idDat$sub %in% (already_fitted$sub)))
+if (length(already_fitted$sub) > 0) {
+  idDat <- subset(idDat, !(idDat$sub %in% (already_fitted$sub)))
+}
+
 idDat <- idDat[order(idDat$sub),]
 # convert rt values from ms to secs to be consistent with rest of script
 # importDat$rt <- as.numeric(importDat$rt / 1000)
 
+print(head(idDat))
 print(unique(idDat$sub))  
 # get sub list
 subList <- (unique(idDat$sub))[startIdx:endIdx]

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#SBATCH --job-name=thrive_tf         # create a short name for your job
+#SBATCH --nodes=1                # node count
+#SBATCH --ntasks=2               # total number of tasks across all nodes
+#SBATCH --cpus-per-task=2
+#SBATCH --time=1000:00:00          # total run time limit (HH:MM:SS)
+#SBATCH --mem=80G
+#SBATCH --partition=highmem1
+#SBATCH --qos=highmem1
+#SBATCH --account=iacc_gbuzzell
+#SBATCH --output=%x-%j.out
+#SBATCH --mail-type=end          # send email when job ends
+#SBATCH --mail-user=fzaki001@fiu.edu
+
+module load matlab-2021b
+
+pwd; hostname; date
+echo "flurm cpus per task: $SLURM_CPUS_PER_TASK"
+
+sing_image="/home/data/NDClab/tools/instruments/containers/singularity/inst-container.simg"
+
+matlab -nodisplay -nosplash -r "MainScript_Calculate_TF_ITPS_ICPS"
+
+errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")
+if [[ -z ${errors} ]]; then
+    echo "EEG preprocessing complete."
+else
+    echo "EEG preprocessing exited with errors: ${errors}"
+fi

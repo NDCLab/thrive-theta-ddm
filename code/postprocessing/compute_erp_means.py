@@ -7,9 +7,26 @@ from glob import glob
 import datetime
 import time
 import h5py
+import sys
+import os
 
-session = "s2_r1"
-laplacian = False
+def find_newest_file(path): 
+    matching_files = glob(path)
+    
+    # Check if any files were found
+    if not matching_files:
+        print("No matching files found.")
+    else:
+        # Find the newest file based on modification time
+        new_file_path = max(matching_files, key=os.path.getmtime)
+        #df = pd.read_csv(new_file_path)
+        # print(f"Found {len(matching_files)} matching files.")
+        print(f"The newest file is: {new_file_path}")
+
+        return new_file_path
+
+session = sys.argv[1]
+laplacian = int(sys.argv[2])
 
 dataset_path = "/home/data/NDClab/datasets/thrive-dataset/"
 analysis_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"
@@ -34,11 +51,10 @@ timeCell = [
     # [300, 500], # PE cluster
 ]
 
-if laplacian:
-    path_to_mat = glob(f"{analysis_path}/derivatives/preprocessed/erp_check/{session}/thrive_Resp_erps_csd_min_6t_*2025*.mat")[0]
-else:
-    path_to_mat = glob(f"{analysis_path}/derivatives/preprocessed/erp_check/{session}/thrive_Resp_erps_min_6t_*2025*.mat")[0]
-    #path_to_mat = glob(f"{analysis_path}/derivatives/preprocessed/erp_check/{session}/thrive_Resp_erps_min_6t_02_11_2025_15_17_33.mat")[0]
+if laplacian == 1:
+    path_to_mat = find_newest_file(f"{analysis_path}/derivatives/preprocessed/erp_check/{session}/thrive_Resp_erps_csd_min_6t_*.mat")
+elif laplacian == 0:
+    path_to_mat = find_newest_file(f"{analysis_path}/derivatives/preprocessed/erp_check/{session}/thrive_Resp_erps_min_6t_*.mat")
 
 path_to_eeg = glob(f"{dataset_path}/derivatives/preprocessed/sub-3000001/{session}/eeg/sub-3000001_all_eeg_processed_data_{session}_e1.set")[0]
 
@@ -57,8 +73,8 @@ endTime = -200
 startIdx = np.argmin(np.abs(EEG_times-startTime)) # get start index for baseline
 endIdx = np.argmin(np.abs(EEG_times-endTime)) # get end index for baseline
 
-allBase = np.squeeze(np.mean(allData[:, :, :, startIdx:endIdx+1], 3))
-allBase = np.mean(allData[:, :, :, startIdx:endIdx+1], 3)
+allBase = np.squeeze(np.nanmean(allData[:, :, :, startIdx:endIdx+1], 3))
+allBase = np.nanmean(allData[:, :, :, startIdx:endIdx+1], 3)
 newData = np.zeros_like(allData)
 
 for i in range(allData.shape[3]):
@@ -82,18 +98,18 @@ for comp in range(len(clustCell)):
     compStartIdx = np.argmin(np.abs(EEG_times-compStartTime))
     compEndIdx = np.argmin(np.abs(EEG_times-compEndTime))
 
-    s_resp_incon_error_avgTime = np.mean(newData[:, 0:1, :, compStartIdx:compEndIdx+1], 3)
-    s_resp_incon_corr_avgTime = np.mean(newData[:, 1:2, :, compStartIdx:compEndIdx+1], 3)
-    ns_resp_incon_error_avgTime = np.mean(newData[:, 2:3, :, compStartIdx:compEndIdx+1], 3)
-    ns_resp_incon_corr_avgTime = np.mean(newData[:, 3:4, :, compStartIdx:compEndIdx+1], 3)
+    s_resp_incon_error_avgTime = np.nanmean(newData[:, 0:1, :, compStartIdx:compEndIdx+1], 3)
+    s_resp_incon_corr_avgTime = np.nanmean(newData[:, 1:2, :, compStartIdx:compEndIdx+1], 3)
+    ns_resp_incon_error_avgTime = np.nanmean(newData[:, 2:3, :, compStartIdx:compEndIdx+1], 3)
+    ns_resp_incon_corr_avgTime = np.nanmean(newData[:, 3:4, :, compStartIdx:compEndIdx+1], 3)
 
     # average cluster of interest
-    s_resp_incon_error_avgTimeClust = np.mean(s_resp_incon_error_avgTime[:, :, cluster], 2)
-    s_resp_incon_corr_avgTimeClust = np.mean(s_resp_incon_corr_avgTime[:, :, cluster], 2)
-    ns_resp_incon_error_avgTimeClust = np.mean(ns_resp_incon_error_avgTime[:, :, cluster], 2)
-    ns_resp_incon_corr_avgTimeClust = np.mean(ns_resp_incon_corr_avgTime[:, :, cluster], 2)
+    s_resp_incon_error_avgTimeClust = np.nanmean(s_resp_incon_error_avgTime[:, :, cluster], 2)
+    s_resp_incon_corr_avgTimeClust = np.nanmean(s_resp_incon_corr_avgTime[:, :, cluster], 2)
+    ns_resp_incon_error_avgTimeClust = np.nanmean(ns_resp_incon_error_avgTime[:, :, cluster], 2)
+    ns_resp_incon_corr_avgTimeClust = np.nanmean(ns_resp_incon_corr_avgTime[:, :, cluster], 2)
 
-    # compute difference scores
+    # compute difference scores (not included to the final csv)
     s_resp_incon_error_avgTimeClust_diff = s_resp_incon_error_avgTimeClust - s_resp_incon_corr_avgTimeClust
     ns_resp_incon_error_avgTimeClust_diff = ns_resp_incon_error_avgTimeClust - ns_resp_incon_corr_avgTimeClust
 
@@ -107,11 +123,11 @@ for comp in range(len(clustCell)):
 
 output_data
 output_data = output_data.iloc[:, :5]
-if laplacian:
-    output_data.columns = [i + "_laplacian" if i != "id" else i for i in output_data.columns]
-output_data = output_data.rename({"id": "sub"}, axis=1)
 
-if laplacian:
-    output_data.to_csv("{analysis_path}/derivatives/csv/{session}/thrive_erp_laplacian.csv", index=False)
-else:
-    output_data.to_csv(f"{analysis_path}/derivatives/csv/{session}/thrive_erp.csv", index=False)
+if laplacian == 1:
+    output_data.columns = [i + "_laplacian" if i != "id" else i for i in output_data.columns]
+    output_data = output_data.rename({"id": "sub"}, axis=1)
+    output_data.to_csv(f"{analysis_path}/derivatives/csv/{session}/thrive_erp_laplacian_{datetime.datetime.now()}.csv", index=False)
+elif laplacian == 0:
+    output_data = output_data.rename({"id": "sub"}, axis=1)
+    output_data.to_csv(f"{analysis_path}/derivatives/csv/{session}/thrive_erp_{datetime.datetime.now()}.csv", index=False)

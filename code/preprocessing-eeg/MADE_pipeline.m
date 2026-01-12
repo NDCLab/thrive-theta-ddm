@@ -338,6 +338,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                 [subj, task, sess, ext] = filename_re{1}{:};
                 output_report_path = [output_location filesep 'MADE_preprocessing_report_' task '_' sess];
             end
+            display(subj);
             disp('DEBUG 12-1');
             %% Initialize EEG structure, output variables, and report table
             EEG=[]; %initialize eeg structure
@@ -365,7 +366,11 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                     continue
                 else % all other cases, merge and process
                     disp('DEBUG 14');
-                    EEG = load_and_merge_2(rawdata_location);
+                    if subj == 'sub-3000008' and session = 's1_r1'
+                        EEG = load_and_merge_2(rawdata_location, {'nonsocial'});
+                    else
+                        EEG = load_and_merge_2(rawdata_location);
+                    end
                     EEG_copy_for_faster=[];
                     EEG_copy_for_faster=EEG; % make a copy of the dataset
                     EEG_copy_for_faster = eeg_checkset(EEG_copy_for_faster); 

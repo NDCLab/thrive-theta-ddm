@@ -28,8 +28,11 @@ rmpath(['/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eegla
 %specify parameters of data to process
 task = 'all';
 procStage = 'processed_data';
-visitDirName = 's1_r1'; %visit folder does not list "e1"
-visitFileName = 's1_r1_e1'; %file names include "e1" designation
+%session = 's1_r1'; 
+
+% Derivations
+visitDirName = session; %visit folder does not list "e1"
+visitFileName = [session, '_e1']; %file names include "e1" designation
 
 %location of analysis folder
 analysis_dir = '/home/data/NDClab/analyses/thrive-theta-ddm';
@@ -88,7 +91,6 @@ parfor subject = 1:length(datafile_names)
 	EEG = pop_loadset('filename', datafile_names{subject}, 'filepath', datafile_paths{subject});
 	EEG = eeg_checkset(EEG);
         
-	%remove all the non-stim-locking markers (should have done already...)
 	EEG = pop_selectevent(EEG, 'latency','-.1 <= .1','deleteevents','on');
 	EEG = eeg_checkset(EEG);
 	fprintf('Subject %s: Processing %d events\n', subNumText, length(EEG.event));

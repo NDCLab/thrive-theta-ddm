@@ -8,9 +8,11 @@ import datetime
 import time
 import re
 import h5py
+import os
+import sys
 
+session = sys.argv[1]
 
-session = "s2_r1"
 dataset_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"
 
 arr_path = f"{dataset_path}/derivatives/preprocessed/TF_arrays/{session}/"
@@ -20,11 +22,24 @@ helper_data = h5py.File(
 
 freqs = helper_data['frequency'][:]
 times = helper_data['ds_time'][:]
+assert np.max(np.abs(times)) > 50, (
+    f"Time unit warning: Max time is {np.max(np.abs(times)):.2f}. "
+    "This looks like SECONDS. Convert 'times' to MS (times * 1000)."
+)
 ch_locs = [str(i) for i in range(1, 65)]
 
 # NOT DIFFERENCE TF + ITPS
 
-thrive_data = pd.read_csv(f"{dataset_path}/derivatives/behavior/{session}/summary.csv")["sub"].to_frame()
+matching_files = glob(f"{dataset_path}/derivatives/behavior/{session}/*summary*{session}*.csv")
+
+# Check if any files were found
+if not matching_files:
+    print("No matching files found.")
+else:
+    # Find the newest file based on modification time
+    new_file_path = max(matching_files, key=os.path.getmtime)
+    thrive_data = pd.read_csv(new_file_path)["sub"].to_frame()
+    print(f"The newest file is: {new_file_path}")
 
 ch = ['1', '2', '33', '34']
 measures = [
@@ -108,6 +123,7 @@ thrive_data = thrive_data[
 [i for i in thrive_data.columns if ("delta" not in i or i == "sub")]
 ]
 
+# note that this renaming logic would not work correctly if congruent conditions are requested above
 colnames = list(thrive_data.columns)
 for i, c in enumerate(colnames[1:]):
     i+=1
@@ -130,4 +146,4 @@ for i, c in enumerate(colnames[1:]):
 
 thrive_data.columns = colnames
 
-thrive_data.to_csv(f"{dataset_path}/derivatives/csv/{session}/thrive_power_itps.csv", index=False)
+thrive_data.to_csv(f"{dataset_path}/derivatives/csv/{session}/thrive_power_itps_{datetime.datetime.now()}.csv", index=False)

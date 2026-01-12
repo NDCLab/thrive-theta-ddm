@@ -1,4 +1,8 @@
-function [EEG] =  load_and_merge(path, deviation_category)
+function [EEG] =  load_and_merge(path, force_cut_list)
+
+    if nargin < 2
+        force_cut_list = {};
+    end
     stim_events_nonsoc = {'S 41', 'S 42', 'S 43', 'S 44'};
     stim_events_soc = {'S 51', 'S 52', 'S 53', 'S 54'};
     stim_count_thresh = 360;
@@ -80,7 +84,7 @@ function [EEG] =  load_and_merge(path, deviation_category)
     regions_to_cut = [];
 
     % --- STEP 2: Evaluate SOCIAL Condition ---
-    if stim_count_soc < stim_count_thresh
+    if stim_count_soc < stim_count_thresh || ismember('social', force_cut_list)
 	% CASE: Too few trials -> Remove ENTIRE condition
         if stim_count_soc > 0
 	    fprintf('Social count (%d) < threshold. Removing entire condition.\n', stim_count_soc);
@@ -135,7 +139,7 @@ function [EEG] =  load_and_merge(path, deviation_category)
     end
 
     % --- STEP 3: Evaluate NONSOCIAL Condition ---
-    if stim_count_nonsoc < stim_count_thresh
+    if stim_count_nonsoc < stim_count_thresh || ismember('nonsocial', force_cut_list)
 	% CASE: Too few trials -> Remove ENTIRE condition
         if stim_count_nonsoc > 0
 	    fprintf('Nonsocial count (%d) < threshold. Removing entire condition.\n', stim_count_nonsoc);
@@ -192,3 +196,4 @@ function [EEG] =  load_and_merge(path, deviation_category)
     else
 	disp('Counts look good. No cuts needed.');
     end
+end

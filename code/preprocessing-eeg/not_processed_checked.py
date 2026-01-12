@@ -13,7 +13,7 @@ start_date = dt.strptime("18/09/34", "%d/%m/%y")
 dir_list = sorted(
     [
         p for p in glob(
-    f"{dataset_path}{data_path}sub-*/{session}/eeg/MADE_preprocessing_report*.csv")
+    f"{dataset_path}{data_path}sub-*/{session}/eeg/MADE_preprocessing_report_all_eeg_{session}_e1.csv")
     ], # if "ERROR" not in os.path.basename(p)],
                   key=os.path.getmtime, reverse=True
                  )

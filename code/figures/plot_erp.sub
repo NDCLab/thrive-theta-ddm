@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH --job-name=plot_erp       # create a short name for your job
+#SBATCH --nodes=1                # node count
+#SBATCH --ntasks=1               # total number of tasks across all nodes
+#SBATCH --cpus-per-task=1
+#SBATCH --time=24:00:00          # total run time limit (HH:MM:SS)
+#SBATCH --mem=4G
+#SBATCH --partition=default-alternate
+#SBATCH --account=acc_gbuzzell
+#SBATCH --output=%x-%j.out
+#SBATCH --mail-type=end          # send email when job ends
+#SBATCH --mail-user=fzaki001@fiu.edu
+
+export PYTHONUNBUFFERED=TRUE
+
+pwd; hostname; date
+echo "flurm cpus per task: $SLURM_CPUS_PER_TASK"
+
+source activate base
+conda activate /home/fzaki001/.conda/envs/thrive-env
+conda run -n thrive-env python -u plot_erp.py "$1" "$2"
+
+errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")
+if [[ -z ${errors} ]]; then
+    echo "Processing complete."
+else
+    echo "Processing exited with errors: ${errors}"
+fi
