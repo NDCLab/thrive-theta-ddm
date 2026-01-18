@@ -47,10 +47,21 @@ session = sys.argv[1]
 
 path = f"/home/data/NDClab/analyses/thrive-theta-ddm/derivatives/behavior/{session}/"
 
-exclude_id_list = [3000242, 3000254, 3000255] # these subs are excluded from ALL behavior + ALL EEG
-unusable_soc = [3000047, 3000056, 3000180, 3000182] # these subs are excluded from SOC behavior + SOC EEG + SOC surveys
-eeg_unusable_nonsoc = [3000008] # these subs are excluded from NONSOC EEG
-exclude_eeg = [3000080, 3000161, 3000228] # these subs are excluded from ALL EEG
+if session == "s1_r1":
+    exclude_id_list = [3000242, 3000254, 3000255] # these subs are excluded from ALL behavior + ALL EEG
+    unusable_soc = [3000047, 3000056, 3000180, 3000182] # these subs are excluded from SOC behavior + SOC EEG + SOC surveys
+    eeg_unusable_nonsoc = [3000008] # these subs are excluded from NONSOC EEG
+    exclude_eeg = [3000080, 3000161, 3000228] # these subs are excluded from ALL EEG
+elif session == "s2_r1":
+    exclude_id_list = [] # these subs are excluded from ALL behavior + ALL EEG
+    unusable_soc = [] # these subs are excluded from SOC behavior + SOC EEG + SOC surveys
+    eeg_unusable_nonsoc = [] # these subs are excluded from NONSOC EEG
+    exclude_eeg = [] # these subs are excluded from ALL EEG
+elif session == "s3_r1"
+    exclude_id_list = [] # these subs are excluded from ALL behavior + ALL EEG
+    unusable_soc = [] # these subs are excluded from SOC behavior + SOC EEG + SOC surveys
+    eeg_unusable_nonsoc = [] # these subs are excluded from NONSOC EEG
+    exclude_eeg = [] # these subs are excluded from ALL EEG
 
 matching_files = glob(f"{path}/*summary*{session}*.csv")
 

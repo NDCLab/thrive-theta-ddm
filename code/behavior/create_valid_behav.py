@@ -47,8 +47,15 @@ session = sys.argv[1]
 
 path = f"/home/data/NDClab/analyses/thrive-theta-ddm/derivatives/behavior/{session}/"
 
-unusable_soc = [3000047, 3000056, 3000180, 3000182]
-exclude_id_list = [3000242, 3000254, 3000255]
+if session == "s1_r1":
+    unusable_soc = [3000047, 3000056, 3000180, 3000182]
+    exclude_id_list = [3000242, 3000254, 3000255]
+elif session == "s2_r1":
+    unusable_soc = []
+    exclude_id_list = []
+elif session == "s3_r1":
+    unusable_soc = []
+    exclude_id_list = []
 
 matching_files = glob(f"{path}/*summary*{session}*.csv")
 
