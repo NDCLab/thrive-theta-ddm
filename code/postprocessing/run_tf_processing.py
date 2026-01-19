@@ -1,6 +1,16 @@
 import subprocess
 import time
 
+"""
+Script to submit batch jobs for Time-Frequency mean computation.
+
+This script submits SLURM jobs to run `compute_means_TF.py` and `compute_means_ICPS.py`
+for defined sessions.
+
+Usage:
+    python run_tf_processing.py
+"""
+
 # Define your iteration parameters
 sessions = [
 "s1_r1",

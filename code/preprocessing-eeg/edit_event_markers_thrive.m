@@ -1,4 +1,15 @@
 function EEG = edit_event_markers_thrive(EEG)
+% EDIT_EVENT_MARKERS_THRIVE Add detailed event labels for the Thrive task.
+%
+% Usage:
+%   EEG = edit_event_markers_thrive(EEG)
+%
+% Inputs:
+%   EEG - EEGLAB data structure.
+%
+% Outputs:
+%   EEG - EEGLAB data structure with updated event field containing:
+%         observation, eventType, congruency, accuracy, rt, etc.
 %
 %%%%%% Label event markers%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

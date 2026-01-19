@@ -3,6 +3,19 @@ import pandas as pd
 from datetime import datetime
 import sys
 
+"""
+Script to aggregate DDM fitting results into a single CSV file.
+
+This script searches for output files from DDM fitting, concatenates them,
+and saves a summary file listing the subjects that have been successfully fitted.
+
+Usage:
+    python fitted.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 session = sys.argv[1]
 current_datetime = datetime.now()
 formatted_date = current_datetime.strftime("%Y_%m_%d_%H_%M_%S")

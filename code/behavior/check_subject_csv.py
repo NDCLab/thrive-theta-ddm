@@ -2,6 +2,17 @@ import os
 import re
 import glob
 
+"""
+Script to verify the integrity of subject CSV files in the source directory.
+
+It checks if each subject has the expected number of files (3) and detects
+any deviation files. It asserts that the main data CSV file exists and does
+not have 'deviation' in its filename.
+
+Usage:
+    python check_subject_csv.py
+"""
+
 input_dataset_path = "/home/data/NDClab/datasets/thrive-dataset/"
 data_path = "sourcedata/checked/"
 sub_path = "s1_r1/psychopy/"

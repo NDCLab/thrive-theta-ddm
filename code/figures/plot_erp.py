@@ -11,7 +11,32 @@ import h5py
 import sys
 import os
 
+"""
+Script to plot Grand Average ERP waveforms.
+
+This script loads aggregated ERP data, applies baseline correction,
+filters subjects based on valid behavioral data, and plots the Grand Average ERPs
+for Social vs Non-Social and Error vs Correct conditions. It specifically targets
+components like ERN and Pe.
+
+Usage:
+    python plot_erp.py <session_id> <laplacian_flag>
+
+Arguments:
+    session_id (str): The session identifier.
+    laplacian_flag (int): 1 for CSD data, 0 for voltage data.
+"""
+
 def find_newest_file(path): 
+    """
+    Finds the most recently modified file matching a glob pattern.
+
+    Args:
+        path (str): Glob pattern to match files.
+
+    Returns:
+        str: The path to the newest file found.
+    """
     matching_files = glob(path)
     
     # Check if any files were found

@@ -1,3 +1,9 @@
+% STIM_CNT_CHECK_PROCESSED Count Trials in Processed Data
+%
+% Usage:
+%   Run this script to scan processed .set files and count valid trials
+%   per condition. Saves results to CSV.
+
 %clear all;
 %clc;
 

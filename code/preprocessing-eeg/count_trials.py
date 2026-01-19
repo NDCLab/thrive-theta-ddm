@@ -10,19 +10,33 @@ from glob import glob
 import datetime
 import time
 
+"""
+Script to count trials in preprocessed EEG data based on various conditions.
+
+This script loads EEG data (.set files), extracts events, and counts trials
+categorized by accuracy, congruency, and observation condition (social/non-social).
+It outputs a CSV with trial counts for each subject.
+
+Usage:
+    python count_trials.py
+"""
+
 def eeg_point2lat(lat_array, epoch_array, srate, timewin=None, timeunit=1):
     """
     Convert latency in data points to latency in ms relative to the time locking.
 
-    Parameters:
-    lat_array (array-like): Latency array in data points assuming concatenated data epochs.
-    epoch_array (array-like or None): Epoch number corresponding to each latency value.
-    srate (float): Data sampling rate in Hz.
-    timewin (list or None): [min, max] time limits in 'timeunit' units. Default is None.
-    timeunit (float): Time unit in seconds. Default is 1 (seconds).
+    Args:
+        lat_array (array-like): Latency array in data points assuming concatenated data epochs.
+        epoch_array (array-like or None): Epoch number corresponding to each latency value.
+        srate (float): Data sampling rate in Hz.
+        timewin (list or None): [min, max] time limits in 'timeunit' units. Default is None.
+        timeunit (float): Time unit in seconds. Default is 1 (seconds).
 
     Returns:
-    numpy.ndarray: Converted latency values (in 'timeunit' units) for each epoch.
+        numpy.ndarray: Converted latency values (in 'timeunit' units) for each epoch.
+
+    Raises:
+        ValueError: If input arrays have inconsistent lengths or timewin is invalid.
     """
     
     lat_array = np.array(lat_array)
@@ -57,6 +71,14 @@ def eeg_point2lat(lat_array, epoch_array, srate, timewin=None, timeunit=1):
     return np.round(newlat * 1e9) / 1e9
 
 def disp_diff_arr(arr1, arr2, round = 5):
+    """
+    Displays differences between two arrays.
+
+    Args:
+        arr1 (np.ndarray): First array.
+        arr2 (np.ndarray): Second array.
+        round (int): Number of decimal places to round to before comparison.
+    """
     mask = np.round(arr1, round) != np.round(arr2, round)
     
     diff_elements_1 = arr1[mask]

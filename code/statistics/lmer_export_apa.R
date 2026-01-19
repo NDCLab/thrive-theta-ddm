@@ -2,6 +2,21 @@ library(dplyr)
 library(tibble)
 library(flextable)
 
+#' LMER Export to APA Table
+#'
+#' Functions to format and export results from Linear Mixed-Effects Models (lmer)
+#' into APA-style Word documents.
+
+#' Export LMER Model Summary to APA-Style Word Document
+#'
+#' Extracts coefficients, confidence intervals, and p-values from an lmer model,
+#' formats them into a nice table, and saves it as a .docx file.
+#'
+#' @param model An lmer model object.
+#' @param path String. The file path where the .docx table should be saved.
+#'
+#' @return No return value, called for side effect of creating a file.
+#' @export
 lmer_export_apa <- function(model, path) {
   
   output_model <- as.data.frame(summary(model)$coefficients)
@@ -38,6 +53,14 @@ lmer_export_apa <- function(model, path) {
   
 }
 
+#' Rename Model Parameters for Publication
+#'
+#' Renames raw variable names from the model output into human-readable labels
+#' suitable for publication (e.g., "acc" -> "Accuracy"). Handles interaction terms.
+#'
+#' @param parameter_vector A character vector of parameter names to rename.
+#'
+#' @return A character vector of renamed parameters.
 rename_parameters <- function(parameter_vector) {
   
   # Define the mapping for single term renaming

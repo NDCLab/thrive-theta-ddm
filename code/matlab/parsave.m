@@ -1,4 +1,17 @@
 function parsave(fname, varargin)
+% PARSAVE Save variables to a file inside a parfor loop.
+%
+% Usage:
+%   parsave(fname, 'var1', val1, 'var2', val2, ...)
+%
+% Inputs:
+%   fname    - Name of the file to save (string/char).
+%   varargin - Alternating variable names (strings) and their values.
+%
+% Description:
+%   Matlab's 'save' function cannot be called directly inside a parfor loop
+%   because it accesses the workspace. This function serves as a wrapper.
+
     % varargin contains alternating variable names and values
     % Extract names and values
     for i = 1:2:length(varargin)

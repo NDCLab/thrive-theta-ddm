@@ -1,6 +1,19 @@
 % this function is run inside MADE, so all EEGLab dependencies should be already imported and initialized
 
 function [bad_channels] = preprocess_eeg_piece(eeg_piece, channel_locations, stimulus_timeoffset)
+% PREPROCESS_EEG_PIECE Preprocess a single segment of EEG data.
+%
+% Usage:
+%   bad_channels = preprocess_eeg_piece(eeg_piece, channel_locations, stimulus_timeoffset)
+%
+% Inputs:
+%   eeg_piece           - EEGLAB structure for the segment.
+%   channel_locations   - Channel locations structure/file.
+%   stimulus_timeoffset - Time offset to apply to stimulus markers (ms).
+%
+% Outputs:
+%   bad_channels        - Indices of channels identified as bad by FASTER.
+
     down_sample = 1;
     sampling_rate = 1000;
     adjust_time_offset = 1;

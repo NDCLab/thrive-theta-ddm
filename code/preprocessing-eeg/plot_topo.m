@@ -1,3 +1,9 @@
+% PLOT_TOPO Plot Topographic Maps of ERPs
+%
+% Usage:
+%   Run this script to load ERP data and plot topographic maps for specific
+%   time windows (e.g., 0-100 ms for ERN).
+
 clear % clear matlab workspace
 clc % clear matlab command window
 

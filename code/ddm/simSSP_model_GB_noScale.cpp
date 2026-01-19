@@ -1,7 +1,39 @@
+/**
+ * @file simSSP_model_GB_noScale.cpp
+ * @brief Implementation of the Shrinking Spotlight Protocol (SSP) Drift Diffusion Model (DDM) simulation.
+ *
+ * This file contains the Rcpp function for simulating trial-level data for the SSP-DDM model.
+ * It simulates the decision-making process by modeling drift diffusion with a shrinking attentional spotlight.
+ */
+
 #include <Rcpp.h>
 #include <Rcpp/Rmath.h>
 using namespace Rcpp;
 
+/**
+ * @brief Simulates trial-level results for the SSP-DDM model.
+ *
+ * This function simulates the response times and accuracy for a set of trials
+ * based on the provided model parameters. It uses a diffusion process where
+ * the drift rate is modulated by a shrinking attentional spotlight.
+ *
+ * @param parms Numeric vector of length 5 containing the SSP parameters:
+ *              - parms[0]: A (boundary separation)
+ *              - parms[1]: tEr (non-decision time)
+ *              - parms[2]: p (perceptual strength)
+ *              - parms[3]: rd (shrinking rate)
+ *              - parms[4]: sda (initial attentional window width)
+ * @param trialType Integer indicating the trial type:
+ *                  - 1: Congruent
+ *                  - 2: Incongruent
+ * @param nTrials Integer. The number of trials to simulate.
+ * @param dt Double. The time step size for the diffusion process simulation.
+ * @param vari Double. The variance of the drift rate for each step.
+ *
+ * @return NumericMatrix A matrix with `nTrials` rows and 2 columns:
+ *         - Column 0: Simulated Reaction Time (RT)
+ *         - Column 1: Simulated Accuracy (1 for correct, 0 for error)
+ */
 // [[Rcpp::export]]
 NumericMatrix simSSP_model_GBnoScale(NumericVector parms, int trialType, int nTrials,
 double dt, double vari) {

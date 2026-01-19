@@ -1,3 +1,10 @@
+% PLOT_ERP Plot Grand Average ERPs
+%
+% Usage:
+%   Run this script to plot Grand Average ERP waveforms for Social vs Non-Social
+%   and Error vs Correct conditions. It handles both standard and CSD data.
+%   It relies on precomputed .mat files containing ERP data.
+
 clear % clear matlab workspace
 clc % clear matlab command window
 

@@ -1,4 +1,10 @@
 
+% TRANSFORM_CSD_S1 Apply CSD Transformation
+%
+% Usage:
+%   Run this script to apply Current Source Density (CSD) transformation
+%   to preprocessed EEG data.
+
 %clear % clear matlab workspace
 cluster = parcluster('local');
 %% Setting up other things

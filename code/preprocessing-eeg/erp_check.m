@@ -1,3 +1,9 @@
+% ERP_CHECK Check ERPs and Count Trials
+%
+% Usage:
+%   Run this script to count trials per condition for each subject and
+%   optionally plot ERPs and topographies for quality checks.
+
 %
 % Modified on 2024/04/11 to process thrive dataset flanker data
 %

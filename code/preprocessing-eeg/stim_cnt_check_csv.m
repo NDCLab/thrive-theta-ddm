@@ -1,3 +1,9 @@
+% STIM_CNT_CHECK_CSV Count Stimulus Markers from Raw Data
+%
+% Usage:
+%   Run this script to scan raw VHDR files (specifically those with deviations)
+%   and count stimulus markers to verify data integrity. Saves results to CSV.
+
 %clear all;
 %clc;
 

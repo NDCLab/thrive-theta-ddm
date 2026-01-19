@@ -7,6 +7,20 @@ import re
 from glob import glob
 from pathlib import Path
 
+"""
+Script to manage and submit batch jobs for EEG preprocessing (MADE pipeline).
+
+This script identifies subjects that need processing (source exists but derivatives do not),
+categorizes them by deviation status, and allows the user to submit SLURM jobs
+for a list of subjects.
+
+Usage:
+    python run_MADE_batch.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 # --- Configuration ---
 if len(sys.argv) < 2:
     print("Usage: python script.py <session>")
@@ -23,7 +37,13 @@ sub_id_pattern = re.compile(r"sub-(\d+)")
 
 def get_subjects(glob_pattern):
     """
-    Globs files and returns a set of unique subject IDs.
+    Finds unique subject IDs from file paths matching a glob pattern.
+
+    Args:
+        glob_pattern (str): The pattern to match files.
+
+    Returns:
+        set: A set of unique subject ID strings.
     """
     subjects = set()
     files = glob(glob_pattern)
@@ -70,6 +90,14 @@ subs_left_no_dev = subs_left - subs_deviations
 # --- 3. Output ---
 
 def print_group(title, data_set, show_ids=True):
+    """
+    Prints a summary of a group of subjects.
+
+    Args:
+        title (str): The title of the group.
+        data_set (set): A set of subject IDs.
+        show_ids (bool, optional): Whether to list the individual IDs. Defaults to True.
+    """
     sorted_list = sorted(list(data_set))
     print("")
     print(f"{title}: {len(sorted_list)}")

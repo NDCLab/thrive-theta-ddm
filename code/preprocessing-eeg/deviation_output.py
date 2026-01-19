@@ -4,6 +4,20 @@ import glob
 import pandas as pd
 import sys
 
+"""
+Script to aggregate deviation reports from subject directories.
+
+This script scans for 'deviation.txt' files in the EEG directories of subjects,
+reads their content, and compiles a CSV report listing deviations and the number
+of EEG files present for each subject.
+
+Usage:
+    python deviation_output.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 session = sys.argv[1]
 base_dir = "/home/data/NDClab/datasets/thrive-dataset/sourcedata/checked/"
 subjects = sorted(glob.glob(os.path.join(base_dir, "sub-3*")))

@@ -11,6 +11,20 @@ import h5py
 import os
 import sys
 
+"""
+Script to compute mean Time-Frequency (TF) power and Inter-Trial Phase Synchrony (ITPS).
+
+Similar to the ICPS script, this extracts mean values for TF power and ITPS
+from precomputed arrays for defined frequency bands, time windows, and channel clusters.
+Results are merged with behavioral data and saved to CSV.
+
+Usage:
+    python compute_means_TF.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 session = sys.argv[1]
 
 dataset_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"

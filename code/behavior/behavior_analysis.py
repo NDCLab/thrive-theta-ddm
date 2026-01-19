@@ -7,9 +7,41 @@ import re
 import time
 import datetime
 
+"""
+Behavioral analysis script for processing PsychoPy data.
+
+This script reads behavioral data from PsychoPy CSV files, performs data cleaning,
+calculates various behavioral metrics (accuracy, reaction times, error rates),
+and generates summary CSV files for further analysis. It processes data for both
+social and non-social conditions.
+
+Usage:
+    python behavior_analysis.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier (e.g., 's1_r1').
+
+Outputs:
+    - Summary CSV file containing aggregated metrics for each subject.
+    - Individual trial data CSV files for each subject.
+    - A combined CSV file containing trial data for all subjects.
+    - A log file recording the processing details.
+"""
+
 pd.options.mode.chained_assignment = None
 
 def convert_to_list_rt(series):
+    """
+    Converts a pandas Series of reaction times (RT) to a list of floats.
+
+    Handles string representations of lists and single values, as well as actual lists.
+
+    Args:
+        series (pd.Series): A pandas Series containing RT data, potentially as strings or lists.
+
+    Returns:
+        list: A list of float RT values, with np.nan for missing or invalid entries.
+    """
     float_list = []
     for value in series:
         if isinstance(value, str):
@@ -24,6 +56,17 @@ def convert_to_list_rt(series):
     return float_list
 
 def convert_to_list_resp(series):
+    """
+    Converts a pandas Series of response keys to a list of response values.
+
+    Parses string representations of lists to extract integer response keys.
+
+    Args:
+        series (pd.Series): A pandas Series containing response data.
+
+    Returns:
+        list: A list of lists containing integer response keys, or np.nan for missing entries.
+    """
     resp_list = []
     for value in series:
         if isinstance(value, str):
@@ -35,6 +78,15 @@ def convert_to_list_resp(series):
 
 
 def sort_csvs_by_date_pd(csv_paths):
+    """
+    Sorts a list of CSV file paths based on the date in the 'date' column of the first row.
+
+    Args:
+        csv_paths (list): A list of file paths to CSV files.
+
+    Returns:
+        list: The list of file paths sorted by date.
+    """
     date_format = "%Y-%m-%d_%Hh%M.%S.%f"
 
     def get_first_date(path):

@@ -1,6 +1,16 @@
 import subprocess
 import time
 
+"""
+Script to submit batch jobs for ERP processing and plotting.
+
+This script iterates over defined sessions and conditions (Laplacian vs standard)
+and submits SLURM jobs for computing ERP means and generating ERP plots.
+
+Usage:
+    python run_erp_processing.py
+"""
+
 # Define your iteration parameters
 sessions = [
 "s1_r1",

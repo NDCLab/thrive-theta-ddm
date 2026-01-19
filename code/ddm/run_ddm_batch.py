@@ -6,6 +6,19 @@ from glob import glob
 from pathlib import Path
 import pandas as pd
 
+"""
+Script to submit DDM fitting jobs to the SLURM scheduler.
+
+This script identifies subjects that have not yet been fitted for the DDM model
+and submits batch jobs for them. It allows for submitting jobs in batches.
+
+Usage:
+    python run_ddm_batch.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 session = sys.argv[1]
 #session = "s2_r1"
 data_dir = "/home/data/NDClab/analyses/thrive-theta-ddm/"

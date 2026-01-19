@@ -11,6 +11,21 @@ import h5py
 import os
 import sys
 
+"""
+Script to compute mean Inter-Channel Phase Synchrony (ICPS) values.
+
+This script loads precomputed ICPS arrays (from MAT/HDF5 files), extracts mean values
+for specific frequency bands (theta, delta), time windows (early, late), and
+electrode clusters (DLPFC, OCC, MOTOR). It merges these values with behavioral
+summary data and saves the result to a CSV file.
+
+Usage:
+    python compute_means_ICPS.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 session = sys.argv[1]
 dataset_path = "/home/data/NDClab/analyses/thrive-theta-ddm/"
 

@@ -4,12 +4,35 @@ import sys
 from glob import glob
 import os
 
+"""
+Script to create valid EEG datasets by filtering subjects and trials.
+
+This script filters behavioral summary data to exclude subjects based on specific
+EEG exclusion criteria and performance thresholds. It creates cleaned CSV files
+for social and non-social conditions.
+
+Usage:
+    python create_valid_eeg.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 
 def replace_outliers_with_nan_cols(df, columns_to_check, sd_thresh=3):
     """
-    Replaces outliers with NaN.
-    Raises KeyError if a column is missing.
-    Returns the modified dataframe if successful.
+    Replaces outliers in specified columns with NaN based on standard deviation threshold.
+
+    Args:
+        df (pd.DataFrame): The input pandas DataFrame.
+        columns_to_check (list): A list of column names to check for outliers.
+        sd_thresh (float, optional): The number of standard deviations to use as the threshold. Defaults to 3.
+
+    Returns:
+        pd.DataFrame: The DataFrame with outliers replaced by NaN.
+
+    Raises:
+        KeyError: If a column in columns_to_check is missing from the DataFrame.
     """
     # 1. Validation: Check all columns exist first
     # If this fails, the error is raised and nothing is returned.

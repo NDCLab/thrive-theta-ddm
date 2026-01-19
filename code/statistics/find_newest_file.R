@@ -1,3 +1,16 @@
+#' Find Newest File Utility
+#'
+#' Provides a function to locate the most recently modified file matching a specific pattern.
+
+#' Find the Newest File Matching a Pattern
+#'
+#' Searches for files matching the given glob pattern and returns the path
+#' to the file with the most recent modification time.
+#'
+#' @param path_pattern A string containing the glob pattern to match files (e.g., "path/to/*.csv").
+#'
+#' @return A string containing the path to the newest file, or NULL if no files are found.
+#' @export
 find_newest_file <- function(path_pattern) {
   # Sys.glob expands wildcards similarly to python's glob
   matching_files <- Sys.glob(path_pattern)

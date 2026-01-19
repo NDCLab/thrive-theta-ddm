@@ -1,4 +1,15 @@
 function [EEG] =  load_and_merge(path, force_cut_list)
+% LOAD_AND_MERGE Load and merge raw EEG files.
+%
+% Usage:
+%   EEG = load_and_merge(path, force_cut_list)
+%
+% Inputs:
+%   path           - Directory containing .vhdr/.vmrk files.
+%   force_cut_list - Cell array of conditions to forcibly remove ('social', 'nonsocial').
+%
+% Outputs:
+%   EEG            - Merged EEGLAB data structure.
 
     if nargin < 2
         force_cut_list = {};

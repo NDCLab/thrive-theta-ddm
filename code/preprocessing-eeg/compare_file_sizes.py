@@ -3,6 +3,13 @@ import os
 from pathlib import Path
 import pandas as pd
 
+"""
+Script to compare file sizes between two directory trees.
+
+Useful for verifying data integrity after copying or moving files, specifically
+checking if processed files in the analysis directory match those in the dataset directory.
+"""
+
 def compare_subject_files(root_path_a, root_path_b, specific_subpath="**/*"):
     """
     Iterates through subject folders (sub-*) in root_path_a, finds the corresponding
@@ -14,6 +21,9 @@ def compare_subject_files(root_path_a, root_path_b, specific_subpath="**/*"):
         specific_subpath (str): Glob pattern to limit search inside subject folders.
                                 Use "**/*" for everything.
                                 Use "**/eeg/*" to only look inside eeg folders.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing details of any size mismatches or missing files.
     """
     base_a = Path(root_path_a)
     base_b = Path(root_path_b)

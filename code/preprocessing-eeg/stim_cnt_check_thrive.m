@@ -1,4 +1,15 @@
 function [stim_count_nonsoc, stim_count_soc] = stim_cnt_check_thrive(path)
+% STIM_CNT_CHECK_THRIVE Count stimulus markers in a directory.
+%
+% Usage:
+%   [stim_count_nonsoc, stim_count_soc] = stim_cnt_check_thrive(path)
+%
+% Inputs:
+%   path              - Directory containing .vhdr files.
+%
+% Outputs:
+%   stim_count_nonsoc - Count of non-social stimulus markers.
+%   stim_count_soc    - Count of social stimulus markers.
 
     stim_events_nonsoc = {'S 41', 'S 42', 'S 43', 'S 44'};
     stim_events_soc = {'S 51', 'S 52', 'S 53', 'S 54'};

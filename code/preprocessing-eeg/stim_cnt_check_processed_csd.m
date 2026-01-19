@@ -1,4 +1,10 @@
 
+% STIM_CNT_CHECK_PROCESSED_CSD Count Trials in Processed CSD Data
+%
+% Usage:
+%   Run this script to scan processed CSD .set files and count valid trials.
+%   Saves results to CSV.
+
 %clear all;
 %clc;
 

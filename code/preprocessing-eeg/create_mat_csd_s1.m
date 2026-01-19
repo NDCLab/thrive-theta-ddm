@@ -1,3 +1,9 @@
+% CREATE_MAT_CSD_S1 Extract ERPs from CSD data
+%
+% Usage:
+%   Run this script to load preprocessed CSD data (.set files), epoch based on
+%   conditions (social/nonsocial, error/correct), and save averaged ERPs to a .mat file.
+
 %
 % Modified on 2024/04/11 to process thrive dataset flanker data
 %

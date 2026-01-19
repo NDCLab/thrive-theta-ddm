@@ -10,7 +10,31 @@ import h5py
 import sys
 import os
 
+"""
+Script to compute mean ERP amplitudes from preprocessed EEG data.
+
+This script loads ERP data from a MAT file, applies baseline correction,
+and calculates mean amplitudes for specific time windows and electrode clusters
+(e.g., ERN, Pe) for social and non-social conditions. It outputs the results to a CSV file.
+
+Usage:
+    python compute_erp_means.py <session_id> <laplacian_flag>
+
+Arguments:
+    session_id (str): The session identifier (e.g., 's1_r1').
+    laplacian_flag (int): 1 to use CSD (Current Source Density) transformed data, 0 for standard voltage.
+"""
+
 def find_newest_file(path): 
+    """
+    Finds the most recently modified file matching a glob pattern.
+
+    Args:
+        path (str): Glob pattern to match files.
+
+    Returns:
+        str: The path to the newest file found.
+    """
     matching_files = glob(path)
     
     # Check if any files were found

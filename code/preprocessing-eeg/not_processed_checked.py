@@ -5,6 +5,20 @@ from datetime import datetime as dt
 from pathlib import Path
 import sys
 
+"""
+Script to identify subjects that still need preprocessing.
+
+This script compares the list of subjects in the source directory (checked data)
+against the list of subjects in the derivatives directory (preprocessed data).
+It reports which subjects are pending, and which of those have recorded deviations.
+
+Usage:
+    python not_processed_checked.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 session = sys.argv[1]
 dataset_path = "/home/data/NDClab/datasets/thrive-dataset/"
 data_path = "derivatives/preprocessed/"

@@ -3,6 +3,20 @@ import argparse
 import re
 from pathlib import Path
 
+"""
+Script to check the processing status of behavioral data for a given session.
+
+This script scans the source directory for raw PsychoPy files, checks for
+deviation files, identifies successfully processed subjects, and reports
+which subjects are pending processing or have deviations.
+
+Usage:
+    python check_status.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier (e.g., 's1_r1').
+"""
+
 def get_args():
     """Parses command line arguments."""
     parser = argparse.ArgumentParser(description="Check behavior processing status.")

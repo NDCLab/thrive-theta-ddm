@@ -1,5 +1,18 @@
 % Define the MADE processing pipeline as a function
 function [] = MADE_pipeline(dataset, subjects, session)
+% MADE_PIPELINE Main processing pipeline for EEG data (MADE).
+%
+% Usage:
+%   MADE_pipeline(dataset, subjects, session)
+%
+% Inputs:
+%   dataset  - Name of the dataset folder (e.g., 'thrive-dataset').
+%   subjects - String with subject IDs separated by slashes (e.g., '3000001/3000002').
+%   session  - Session ID (e.g., 's1_r1').
+%
+% Description:
+%   Executes the full preprocessing pipeline including filtering, artifact rejection (FASTER/ADJUST),
+%   ICA, and epoching.
 
 % dataset: str like 'thrive-dataset'
 % subjects: str like '3000001/3000002/3000003/3000004'

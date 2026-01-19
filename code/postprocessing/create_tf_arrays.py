@@ -8,6 +8,20 @@ from tqdm import tqdm
 import re
 import sys
 
+"""
+Script to aggregate individual Time-Frequency (TF) data into group-level arrays.
+
+This script iterates through all subjects and conditions, loads their individual
+TF output files (HDF5/MAT), and concatenates them into large matrices (Subject x Channel x Time x Freq).
+These aggregate arrays are saved for faster group-level analysis.
+
+Usage:
+    python create_tf_arrays.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier.
+"""
+
 # This code creates big arrays of n_sub * chan * times * freqs data from individual time-frequecy data arrays by concatenating individual participants' data.
 
 #session = "s2_r1"

@@ -5,7 +5,24 @@ from rich.console import Console
 from rich.table import Table
 from rich.syntax import Syntax
 
+"""
+Script to compare two BrainVision header (.vhdr) files.
+
+This script displays a rich, color-coded unified diff of two text files,
+intended for comparing VHDR files.
+
+Usage:
+    python diff_vhdr.py <file1.vhdr> <file2.vhdr>
+"""
+
 def print_diff_rich(file1_path, file2_path):
+    """
+    Prints a color-coded diff of two files to the console.
+
+    Args:
+        file1_path (str): Path to the first file.
+        file2_path (str): Path to the second file.
+    """
     console = Console()
 
     try:

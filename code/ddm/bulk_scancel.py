@@ -1,5 +1,15 @@
 import subprocess
 
+"""
+Script to bulk cancel SLURM jobs within a specified range of job IDs.
+
+This script generates a list of job IDs from a start ID to an end ID and
+executes the 'scancel' command for all of them.
+
+Usage:
+    python bulk_scancel.py
+"""
+
 start_id = 2648371
 end_id = 2648451
 

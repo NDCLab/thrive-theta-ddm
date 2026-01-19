@@ -1,4 +1,14 @@
 function [eeg_pieces] = make_eeg_pieces(EEG)
+% MAKE_EEG_PIECES Split EEG data into segments based on boundary markers.
+%
+% Usage:
+%   eeg_pieces = make_eeg_pieces(EEG)
+%
+% Inputs:
+%   EEG        - EEGLAB data structure.
+%
+% Outputs:
+%   eeg_pieces - Cell array of EEGLAB structures, each representing a segment.
 
     % Step 1: Extract boundary event latencies
     [~, boundary_indices] = pop_selectevent(EEG, 'type', 'boundary');

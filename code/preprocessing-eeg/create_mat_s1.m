@@ -1,3 +1,9 @@
+% CREATE_MAT_S1 Extract ERPs from standard EEG data
+%
+% Usage:
+%   Run this script to load preprocessed EEG data (.set files), epoch based on
+%   conditions, and save averaged ERPs to a .mat file.
+
 %
 % Modified on 2024/04/11 to process thrive dataset flanker data
 %

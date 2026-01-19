@@ -2,7 +2,27 @@ import argparse
 from pathlib import Path
 import sys
 
+"""
+Script to verify the existence and count of preprocessed EEG files.
+
+This script scans the derivatives directory for preprocessed EEG data (.set and .fdt files)
+and alerts if a subject has more than the expected number of files, which might indicate
+duplicates or processing issues.
+
+Usage:
+    python check_preprocessed_files.py [root_dir]
+
+Arguments:
+    root_dir (str, optional): Root directory of the dataset. Defaults to standard path.
+"""
+
 def check_eeg_files(root_dir):
+    """
+    Scans the directory structure for EEG files and reports counts per subject.
+
+    Args:
+        root_dir (str): The root directory to start the scan from.
+    """
     root_path = Path(root_dir)
     
     if not root_path.exists():

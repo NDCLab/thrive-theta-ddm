@@ -4,12 +4,35 @@ import sys
 from glob import glob
 import os
 
+"""
+Script to filter and clean behavioral data, creating valid datasets for analysis.
+
+This script loads the behavioral summary data, removes excluded subjects and
+outliers based on reaction time and accuracy criteria, and saves separate CSV
+files for social and non-social conditions containing only valid data.
+
+Usage:
+    python create_valid_behav.py <session_id>
+
+Arguments:
+    session_id (str): The session identifier (e.g., 's1_r1').
+"""
+
 
 def replace_outliers_with_nan_cols(df, columns_to_check, sd_thresh=3):
     """
-    Replaces outliers with NaN.
-    Raises KeyError if a column is missing.
-    Returns the modified dataframe if successful.
+    Replaces outliers in specified columns with NaN based on standard deviation threshold.
+
+    Args:
+        df (pd.DataFrame): The input pandas DataFrame.
+        columns_to_check (list): A list of column names to check for outliers.
+        sd_thresh (float, optional): The number of standard deviations to use as the threshold. Defaults to 3.
+
+    Returns:
+        pd.DataFrame: The DataFrame with outliers replaced by NaN.
+
+    Raises:
+        KeyError: If a column in columns_to_check is missing from the DataFrame.
     """
     # 1. Validation: Check all columns exist first
     # If this fails, the error is raised and nothing is returned.
