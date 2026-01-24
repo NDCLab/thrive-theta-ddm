@@ -7,13 +7,9 @@ from pathlib import Path
 import pandas as pd
 
 session = sys.argv[1]
-#session = "s2_r1"
 data_dir = "/home/data/NDClab/analyses/thrive-theta-ddm/"
 thrive_id_soc = pd.read_csv(f"{data_dir}/derivatives/behavior/{session}/thrive_data_soc.csv")
 thrive_id_nonsoc = pd.read_csv(f"{data_dir}/derivatives/behavior/{session}/thrive_data_nonsoc.csv")
-
-#already_fitted = pd.read_csv(f"{data_dir}/code/ddm/fitted_subjects_{session}_2025_12_27_23_54_17.csv")
-#already_fitted = pd.read_csv(f"{data_dir}/code/ddm/fitted_subjects_{session}_2025_12_27_23_54_17.csv")
 
 # Define path and pattern
 search_dir = Path(f"{data_dir}/code/ddm/")
