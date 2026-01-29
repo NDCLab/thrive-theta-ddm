@@ -11,20 +11,10 @@ import h5py
 import sys
 import os
 
-def find_newest_file(path): 
-    matching_files = glob(path)
-    
-    # Check if any files were found
-    if not matching_files:
-        print("No matching files found.")
-    else:
-        # Find the newest file based on modification time
-        new_file_path = max(matching_files, key=os.path.getmtime)
-        # df = pd.read_csv(new_file_path)
-        # print(f"Found {len(matching_files)} matching files.")
-        print(f"The newest file is: {new_file_path}")
+ndcl_module_path = '/home/data/NDClab/analyses/thrive-theta-ddm/code/python/'
+sys.path.append(ndcl_module_path)
 
-        return new_file_path
+from ndclab_py import *
 
 session = sys.argv[1]
 laplacian = int(sys.argv[2])
@@ -66,8 +56,8 @@ sub_from_eeg = [int(mat["erpDat_subIds"][i].item()[0]) for i in range(len(mat["e
 
 # take IDs from fully processed behavioral data (checked for accuracy, validRT, missed responses) separately for each condition
 valid_subject_path = f"/home/data/NDClab/analyses/thrive-theta-ddm/derivatives/behavior/{session}/"
-thrive_data_soc = pd.read_csv(f"{valid_subject_path}/thrive_valid_eeg_soc.csv")
-thrive_data_nonsoc = pd.read_csv(f"{valid_subject_path}/thrive_valid_eeg_nonsoc.csv")
+thrive_data_soc = pd.read_csv(find_newest_file(f"{valid_subject_path}/thrive_valid_eeg_soc.csv"))
+thrive_data_nonsoc = pd.read_csv(find_newest_file(f"{valid_subject_path}/thrive_valid_eeg_nonsoc.csv"))
 
 sub_soc = list(thrive_data_soc["sub"])
 sub_nonsoc = list(thrive_data_nonsoc["sub"])
@@ -155,5 +145,5 @@ plt.xlim(xlim[0], xlim[1])
 plt.ylim(ylim[0], ylim[1])
 plt.ylabel('Amplitude in µV', fontsize=14)
 plt.xlabel(xtitle, fontsize=14)
-plt.savefig(f"{fig_path}{component}_avg{plot_name}.png")
+plt.savefig(f"{fig_path}{component}_avg{plot_name}_{session}.png")
 plt.show()

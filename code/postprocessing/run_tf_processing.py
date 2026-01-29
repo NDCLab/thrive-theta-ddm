@@ -3,9 +3,9 @@ import time
 
 # Define your iteration parameters
 sessions = [
-"s1_r1",
-#"s2_r1",
-#"s3_r1"
+#"s1_r1",
+"s2_r1",
+"s3_r1"
 ]
 
 slurm_scripts = [

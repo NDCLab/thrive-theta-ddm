@@ -146,4 +146,4 @@ for i, c in enumerate(colnames[1:]):
 
 thrive_data.columns = colnames
 
-thrive_data.to_csv(f"{dataset_path}/derivatives/csv/{session}/thrive_power_itps_{datetime.datetime.now()}.csv", index=False)
+thrive_data.to_csv(f"{dataset_path}/derivatives/csv/{session}/thrive_power_itps_{datetime.now()}.csv", index=False)

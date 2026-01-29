@@ -20,7 +20,7 @@ lmer_export_apa <- function(model, path) {
   
   # Optionally, set row names back to the rowname column
   result <- result %>% column_to_rownames('rowname')
-  colnames(result)[1] <- "β"
+  colnames(result)[1] <- "Beta"
   colnames(result)[2] <- "SE"
   colnames(result)[3] <- "df"
   colnames(result)[4] <- "t"
@@ -29,10 +29,15 @@ lmer_export_apa <- function(model, path) {
   
   # Print the result
   final_table <- nice_table(result, italics = c(2, 3, 4, 5, 6), col.format.p = 6, note = "Significance codes: * p < .05, ** p < .01, *** p < .001. Degrees of freedom for the fixed effects were estimated using Satterthwaite's approximation.")
+
+    
   final_table <- final_table %>%
+    set_header_labels(Beta = "\u03B2") %>%  # Map 'Beta' to Greek symbol
     set_table_properties(width = 1, layout = "autofit") %>%
     line_spacing(space = 1, part = "all") %>%
-    padding(padding.top = .5, padding.bottom = .5, part = "all")
+    padding(padding.top = .5, padding.bottom = .5, part = "all") %>%
+    fontsize(size = 10, part = "all") %>%
+    fontsize(size = 9, part = "footer")
     # padding(i = ~ grepl("\\*", Parameter), j = 1, padding.left = 20)
   flextable::save_as_docx(final_table, path = path)
   
@@ -53,54 +58,52 @@ rename_parameters <- function(parameter_vector) {
     "ICPS_MOTOR_diff_collapsed" = "ICPS midlateral",
     "ICPS_early_OCC_diff_collapsed" = "ICPS posterolateral",
     "ICPS_early_DLPFC_diff_collapsed" = "ICPS frontolateral",
-    "ICPS_early_MOTOR_diff_collapsed" = "ICPS midlateral"
+    "ICPS_early_MOTOR_diff_collapsed" = "ICPS midlateral",
+    "bfne_b_scrdTotal_s1_r1_e1" = "BFNE"
     # Add more mappings here if needed in the future
   )
   
-  # Initialize an empty vector to store the new names
+# Helper function to check map with or without digits
+  get_mapped_name <- function(x, map) {
+    # 1. Check exact match first (fixes your BFNE issue)
+    if (x %in% names(map)) {
+      return(map[[x]])
+    }
+    
+    # 2. Check match after removing trailing digits (for factor levels)
+    x_base <- gsub("\\d+$", "", x)
+    if (x_base %in% names(map)) {
+      return(map[[x_base]])
+    }
+    
+    # 3. No match found, return original
+    return(x)
+  }
+  
+  # Initialize an empty vector
   new_names <- character(length(parameter_vector))
   
-  # Iterate over each column name in the input vector
+  # Iterate over each column name
   for (i in seq_along(parameter_vector)) {
     original_name <- parameter_vector[i]
-    processed_name <- original_name # Default to original if no rules apply
+    processed_name <- original_name 
     
-    # Check if the name contains interaction terms (indicated by ":")
+    # Check if interaction term
     if (grepl(":", original_name)) {
-      # Split the name into individual components based on ":"
       parts <- strsplit(original_name, ":")[[1]]
       
-      # Rename each part
-      renamed_parts <- sapply(parts, function(part) {
-        # Remove trailing digits for lookup
-        part_base <- gsub("\\d+$", "", part) 
-        if (part_base %in% names(name_map)) {
-          # If the base part is in the map, use the mapped name
-          return(name_map[part_base])
-        } else {
-          # Otherwise, keep the original part (with digits if any)
-          return(part) 
-        }
-      }, USE.NAMES = FALSE)
+      # Rename each part using the helper
+      renamed_parts <- sapply(parts, get_mapped_name, map = name_map, USE.NAMES = FALSE)
       
-      # Join the renamed parts with " * "
       processed_name <- paste(renamed_parts, collapse = " * ")
       
     } else {
-      # If it's not an interaction term, process it as a single term
-      # Remove trailing digits for lookup
-      original_name_base <- gsub("\\d+$", "", original_name)
-      if (original_name_base %in% names(name_map)) {
-        # If the base name is in the map, use the mapped name
-        processed_name <- name_map[original_name_base]
-      }
-      # If not in the map, it remains as 'original_name' (already set in processed_name)
+      # Single term processing
+      processed_name <- get_mapped_name(original_name, name_map)
     }
     
-    # Store the processed name
     new_names[i] <- processed_name
   }
   
-  # Return the vector of new column names
   return(new_names)
 }

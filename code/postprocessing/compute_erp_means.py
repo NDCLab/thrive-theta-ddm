@@ -10,20 +10,10 @@ import h5py
 import sys
 import os
 
-def find_newest_file(path): 
-    matching_files = glob(path)
-    
-    # Check if any files were found
-    if not matching_files:
-        print("No matching files found.")
-    else:
-        # Find the newest file based on modification time
-        new_file_path = max(matching_files, key=os.path.getmtime)
-        #df = pd.read_csv(new_file_path)
-        # print(f"Found {len(matching_files)} matching files.")
-        print(f"The newest file is: {new_file_path}")
+ndcl_module_path = '/home/data/NDClab/analyses/thrive-theta-ddm/code/python/'
+sys.path.append(ndcl_module_path)
 
-        return new_file_path
+from ndclab_py import *
 
 session = sys.argv[1]
 laplacian = int(sys.argv[2])
@@ -127,7 +117,7 @@ output_data = output_data.iloc[:, :5]
 if laplacian == 1:
     output_data.columns = [i + "_laplacian" if i != "id" else i for i in output_data.columns]
     output_data = output_data.rename({"id": "sub"}, axis=1)
-    output_data.to_csv(f"{analysis_path}/derivatives/csv/{session}/thrive_erp_laplacian_{datetime.datetime.now()}.csv", index=False)
+    output_data.to_csv(f"{analysis_path}/derivatives/csv/{session}/thrive_erp_laplacian_{datetime.now()}.csv", index=False)
 elif laplacian == 0:
     output_data = output_data.rename({"id": "sub"}, axis=1)
-    output_data.to_csv(f"{analysis_path}/derivatives/csv/{session}/thrive_erp_{datetime.datetime.now()}.csv", index=False)
+    output_data.to_csv(f"{analysis_path}/derivatives/csv/{session}/thrive_erp_{datetime.now()}.csv", index=False)

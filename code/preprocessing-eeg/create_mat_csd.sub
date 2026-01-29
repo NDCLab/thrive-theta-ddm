@@ -17,10 +17,9 @@ module load matlab-2021b
 
 pwd; hostname; date
 echo "flurm cpus per task: $SLURM_CPUS_PER_TASK"
-
-sing_image="/home/data/NDClab/tools/instruments/containers/singularity/inst-container.simg"
-
-matlab -nodisplay -nosplash -r "create_mat_csd_s1"
+SESSION_ARG=$1
+CSD_ARG=$2
+matlab -nodisplay -nosplash -r "session = '$SESSION_ARG'; csd = '$CSD_ARG'; create_mat_csd; exit;"
 
 errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")
 if [[ -z ${errors} ]]; then
