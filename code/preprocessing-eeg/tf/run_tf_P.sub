@@ -25,7 +25,7 @@ sing_image="/home/data/NDClab/tools/instruments/containers/singularity/inst-cont
 # COND="resp_ns_i_0"
 
 #matlab -nodisplay -nosplash -r "MainScript_Calculate_TF_ITPS_ICPS_para_s1"
-matlab -nodisplay -nosplash -r "session='$SESS'; condition_to_compute='$COND'; run('MainScript_Calculate_TF_ITPS_ICPS_para_s1.m');"
+matlab -nodisplay -nosplash -r "session='$SESS'; condition_to_compute='$COND'; run('MainScript_Calculate_TF_ITPS_ICPS_para.m');"
 
 errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")
 if [[ -z ${errors} ]]; then
