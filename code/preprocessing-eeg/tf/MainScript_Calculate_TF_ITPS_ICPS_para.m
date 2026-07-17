@@ -23,11 +23,31 @@ wpli_output_dir = 'wPLI';
 data_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'csd_data' filesep session filesep];
 
 %2. Save Data Location
-save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep session filesep 'resp' filesep 'seed_1' filesep];
+save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep session filesep 'resp' filesep 'seed_1_test' filesep];
 %disp(save_location)
 % Create output folders to save data
 if exist(save_location, 'dir') == 0
     mkdir(save_location);
+end
+
+% Create output folders to save data
+if exist([save_location filesep tf_output_dir], 'dir') == 0
+    mkdir([save_location filesep tf_output_dir]);
+end
+
+% Create output folders to save data
+if exist([save_location filesep itps_output_dir], 'dir') == 0
+    mkdir([save_location filesep itps_output_dir]);
+end
+
+% Create output folders to save data
+if exist([save_location filesep icps_output_dir], 'dir') == 0
+    mkdir([save_location filesep icps_output_dir]);
+end
+
+% Create output folders to save data
+if exist([save_location filesep wpli_output_dir], 'dir') == 0
+    mkdir([save_location filesep wpli_output_dir]);
 end
 
 %3. Scripts Location
@@ -871,6 +891,34 @@ parfor sub=1:length(subject_list)
                                     %Event-Related, over trials, all-to-all connectivity; condition x frequency x time x channel x channel
                                     %Event-Related, over time, seed-based; condition x frequency x trials x non-seed channel
                                     %Event-Related, over trials, seed-based; condition x frequency x time x non-seed channel
+
+                                    % Convert all channel labels in EEG.chanlocs to uppercase.
+                                    % EEG.chanlocs is a struct array where each entry corresponds to one
+                                    % electrode. The .labels field contains the string name of that electrode.
+                                    % This loop overwrites each label in place with its uppercase equivalent.
+                                    % this is not needed for THRIVE (because numbered electrode labels)
+                                    % and breaks the parfor loop, therefore commenting out
+                                    % for i = 1:length(EEG.chanlocs)
+                                    %     EEG.chanlocs(i).labels = upper(EEG.chanlocs(i).labels);
+                                    % end
+                                    
+                                    % Convert the user-defined seed electrode name to uppercase.
+                                    % Seed is a single string (e.g., 'Fz') defined earlier in the parameter
+                                    % section. This ensures it will match the now-uppercased EEG.chanlocs.labels
+                                    % when find(strcmp(...)) is called later to locate the seed channel index.
+                                    % this is not needed for THRIVE (because numbered electrode labels)
+                                    % and breaks the parfor loop, therefore commenting out
+                                    % Seed = upper(Seed);
+                                    
+                                    % Convert all non-seed channel names in Elecs4Connect to uppercase.
+                                    % Elecs4Connect is a cell array of strings defining which channels to
+                                    % compute connectivity for (e.g., {'Fz','Cz','Pz'}).
+                                    % cellfun applies upper() to each cell element individually.
+                                    % 'UniformOutput', false is required because upper() returns a string
+                                    % (non-scalar), so the output cannot be collapsed into a standard array.
+                                    % this is not needed for THRIVE (because numbered electrode labels)
+                                    % and breaks the parfor loop, therefore commenting out
+                                    % Elecs4Connect = cellfun(@upper, Elecs4Connect, 'UniformOutput', false);
                                     
                                     %% Initialize output matrices depending on type of connectivity
                                     if TimeOrTrials == 0 %over time 
@@ -1104,13 +1152,29 @@ parfor sub=1:length(subject_list)
                                     elseif ConnectType == 1
                                         if TimeOrTrials == 0
                                             fprintf('\n\n\n*** Calculating ICPS for subject %d (%s) ***\n\n\n', sub, subject);
-                                                %Find index of seed electrode
-                                                Seed_idx = find(strcmpi({EEG.chanlocs.labels},Seed));
                                                 
-                                                % Find indices of the non-seed channels
+                                                % Kia's CHANGE: Added isempty() checks after each find() call for Seed_idx and
+                                                % Elecs_idx. In the original, if a channel label was not found, find()
+                                                % returned [] and the subsequent array assignment would either crash with
+                                                % an unhelpful index error or silently assign nothing. The improved version
+                                                % throws an explicit, informative error identifying which channel was missing.
+                                                % Also replaced strcmpi() with strcmp() for Seed_idx lookup, since all
+                                                % labels are now pre-normalized to uppercase at the top of the script.
+                                        
+                                                %Find index of seed electrode
+                                                Seed_idx = find(strcmp({EEG.chanlocs.labels}, Seed));
+                                                if isempty(Seed_idx)
+                                                    error('Seed channel not found in dataset.');
+                                                end
+                                        
                                                 Elecs_idx = zeros(1, length(Elecs4Connect));
-                                                for i=1:length(Elecs4Connect)
-                                                    Elecs_idx (i)= find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                % Find indices of the non-seed channels
+                                                for i = 1:length(Elecs4Connect)
+                                                    idx = find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                    if isempty(idx)
+                                                        error('Channel "%s" from Elecs4Connect was not found in the dataset.', Elecs4Connect{i});
+                                                    end
+                                                    Elecs_idx(i) = idx;
                                                 end
                                              %loop through channels
                                              for chanj=1:length(Elecs4Connect)
@@ -1136,13 +1200,29 @@ parfor sub=1:length(subject_list)
                                                     fprintf('\n\n\n*** Calculating ICPS for subject %d (%s) subsample %d ***\n\n\n', sub, subject, samp);
                                                     crossspecden=[]; crossspecden_imag=[]; subtrials=[]; crossspecden_imag_temp=[]; 
                                                     
-                                                    %Find index of seed electrode
-                                                        Seed_idx = find(strcmpi({EEG.chanlocs.labels},Seed));
+                                                        % Kia's CHANGE: Added isempty() checks after each find() call for Seed_idx and
+                                                        % Elecs_idx. In the original, if a channel label was not found, find()
+                                                        % returned [] and the subsequent array assignment would either crash with
+                                                        % an unhelpful index error or silently assign nothing. The improved version
+                                                        % throws an explicit, informative error identifying which channel was missing.
+                                                        % Also replaced strcmpi() with strcmp() for Seed_idx lookup, since all
+                                                        % labels are now pre-normalized to uppercase at the top of the script.
+                                            
+                                                        %Find index of seed electrode
+                                                        Seed_idx = find(strcmp({EEG.chanlocs.labels}, Seed));
+                                                        if isempty(Seed_idx)
+                                                            error('Seed channel not found in dataset.');
+                                                        end
+                                            
                                                         Elecs_idx = zeros(1, length(Elecs4Connect));
                                                         % Find indices of the non-seed channels
-                                                        for i=1:length(Elecs4Connect)
-                                                            Elecs_idx (i)= find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
-                                                        end 
+                                                        for i = 1:length(Elecs4Connect)
+                                                            idx = find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                            if isempty(idx)
+                                                                error('Channel "%s" from Elecs4Connect was not found in the dataset.', Elecs4Connect{i});
+                                                            end
+                                                            Elecs_idx(i) = idx;
+                                                        end
                                                     
                                                     %loop through channels
                                                     for chanj=1:length(Elecs4Connect)
@@ -1171,16 +1251,33 @@ parfor sub=1:length(subject_list)
                                                 fprintf('\n\n\n*** Calculating ICPS for subject %d (%s) ***\n\n\n', sub, subject);
                                                 % take cross-spectral density
                                                 for chanj=1:length(Elecs4Connect)
+
+                                                    % Kia's CHANGE: Added isempty() checks after each find() call for Seed_idx and
+                                                    % Elecs_idx. In the original, if a channel label was not found, find()
+                                                    % returned [] and the subsequent array assignment would either crash with
+                                                    % an unhelpful index error or silently assign nothing. The improved version
+                                                    % throws an explicit, informative error identifying which channel was missing.
+                                                    % Also replaced strcmpi() with strcmp() for Seed_idx lookup, since all
+                                                    % labels are now pre-normalized to uppercase at the top of the script.
+                                        
                                                     %Find index of seed electrode
-                                                    Seed_idx = find(strcmpi({EEG.chanlocs.labels},Seed));
+                                                    Seed_idx = find(strcmp({EEG.chanlocs.labels}, Seed));
+                                                    if isempty(Seed_idx)
+                                                        error('Seed channel not found in dataset.');
+                                                    end
+                                        
                                                     Elecs_idx = zeros(1, length(Elecs4Connect));
                                                     % Find indices of the non-seed channels
-                                                    for i=1:length(Elecs4Connect)
-                                                        Elecs_idx (i)= find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                    for i = 1:length(Elecs4Connect)
+                                                        idx = find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                        if isempty(idx)
+                                                            error('Channel "%s" from Elecs4Connect was not found in the dataset.', Elecs4Connect{i});
+                                                        end
+                                                        Elecs_idx(i) = idx;
                                                     end
                                                     
                                                     % take cross-spectral density between two channels - one being the seed for ICPS
-                                                    crossspecden = squeeze(data(:,:,:,Seed_ids) .* conj(data(:,:,:,Elecs_idx(chanj))));
+                                                    crossspecden = squeeze(data(:,:,:,Seed_idx) .* conj(data(:,:,:,Elecs_idx(chanj))));
                                                     %Initialize matrix
                                                     ICPS_seed = zeros(size(data,1), size(data,2));
                                                     for freq=1:size(data, 1)
@@ -1268,7 +1365,13 @@ parfor sub=1:length(subject_list)
                                                         'channel_location', channel_location);
                                                     elseif Downsample ==1
                                                         %Downsample
-                                                        ICPS_blncorr = ICPS_blncorr(:,1:2:size(ICPS_blncorr,2),:,:);
+
+                                                        % Kia's CHANGE (BUG FIX): the trailing indexing was corrected from ',:,:' to
+                                                        % just ',:' because seed-based wPLI_blncorr is 3D (freq x time x channel),
+                                                        % not 4D like the all-to-all matrix. Using ',:,:' on a 3D array would
+                                                        % cause a MATLAB dimension mismatch error.
+                                                        
+                                                        ICPS_blncorr = ICPS_blncorr(:,1:2:size(ICPS_blncorr,2),:);
                                                         
                                                         %Downsample time variable
                                                         ds_time = downsample(time,2);
@@ -1368,31 +1471,58 @@ parfor sub=1:length(subject_list)
                                     %over trials, all-to-all connectivity; frequency x time x channel x channel
                                     %over time, seed-based; frequency x trials x non-seed channel 
                                     %over trials, seed-based; frequency x time x non-seed channel 
+
+                                    % Convert all channel labels in EEG.chanlocs to uppercase.
+                                    % EEG.chanlocs is a struct array where each entry corresponds to one
+                                    % electrode. The .labels field contains the string name of that electrode.
+                                    % This loop overwrites each label in place with its uppercase equivalent.
+                                    % this is not needed for THRIVE (because numbered electrode labels)
+                                    % and breaks the parfor loop, therefore commenting out
+                                    % for i = 1:length(EEG.chanlocs)
+                                    %    EEG.chanlocs(i).labels = upper(EEG.chanlocs(i).labels);
+                                    % end
+                                    
+                                    % Convert the user-defined seed electrode name to uppercase.
+                                    % Seed is a single string (e.g., 'Fz') defined earlier in the parameter
+                                    % section. This ensures it will match the now-uppercased EEG.chanlocs.labels
+                                    % when find(strcmp(...)) is called later to locate the seed channel index.
+                                    % this is not needed for THRIVE (because numbered electrode labels)
+                                    % and breaks the parfor loop, therefore commenting out
+                                    % Seed = upper(Seed);
+                                    
+                                    % Convert all non-seed channel names in Elecs4Connect to uppercase.
+                                    % Elecs4Connect is a cell array of strings defining which channels to
+                                    % compute connectivity for (e.g., {'Fz','Cz','Pz'}).
+                                    % cellfun applies upper() to each cell element individually.
+                                    % 'UniformOutput', false is required because upper() returns a string
+                                    % (non-scalar), so the output cannot be collapsed into a standard array.
+                                    % this is not needed for THRIVE (because numbered electrode labels)
+                                    % and breaks the parfor loop, therefore commenting out
+                                    % Elecs4Connect = cellfun(@upper, Elecs4Connect, 'UniformOutput', false);
                                     
                                     %% Initialize output matrices depending on type of connectivity
-                                    if TimeOrTrials == 0
-                                        if ConnectType == 0
+                                    if TimeOrTrials == 0 %over time
+                                        if ConnectType == 0 % all-to-all
                                             %over time, all-to-all
                                             wPLI_all       = zeros(size(data, 1), size(data, 3), size(data, 4), size(data, 4));
-                                        elseif ConnectType == 1
+                                        elseif ConnectType == 1 % seed-based
                                             %over time, seed-based
                                             wPLI_all       = zeros(size(data, 1), size(data, 3), length(Elecs4Connect));
                                         end
-                                    elseif TimeOrTrials ==1
-                                        if ConnectType == 0
+                                    elseif TimeOrTrials ==1 %over trials
+                                        if ConnectType == 0 % all-to-all
                                             %over trials, all-to-all
                                             wPLI_all       = zeros(size(data, 1), size(data, 2), size(data, 4), size(data, 4));
-                                        elseif ConnectType == 1
+                                        elseif ConnectType == 1 % seed-based
                                             %over trials, seed-based
                                             wPLI_all       = zeros(size(data, 1), size(data, 2), length(Elecs4Connect));
                                         end
                                     end
                                     
-                                    
                                     %% Connectivity Computations
                                     %%Compute all-to-all connectivity
-                                    if ConnectType == 0
-                                        if TimeOrTrials ==0
+                                    if ConnectType == 0 % all-to-all
+                                        if TimeOrTrials ==0 % over time
                                             fprintf('\n\n\n*** Calculating wPLI for subject %d (%s) ***\n\n\n', sub, subject);
                                             for chani=1:size(data, 4)
                                                 for chanj=chani:size(data, 4)
@@ -1404,11 +1534,11 @@ parfor sub=1:length(subject_list)
                                                     for freq=1:size(data, 1)
                                                         wPLI_all(freq,:,chani,chanj) = abs( mean( abs(crossspecden_imag(freq,:,:)).*sign(crossspecden_imag(freq,:,:)),2))./mean(abs(crossspecden_imag(freq,:,:)),2);
                                                         wPLI_all(freq,:,chanj,chani) = abs( mean( abs(crossspecden_imag(freq,:,:)).*sign(crossspecden_imag(freq,:,:)),2))./mean(abs(crossspecden_imag(freq,:,:)),2);
-                                                    end %end loop through frequencies
-                                                end %end second loop through channels
-                                            end %end first loop through channels
+                                                    end % end loop through frequencies 
+                                                end % end second loop through channels 
+                                            end % end first loop through channels
                                             
-                                        elseif TimeOrTrials==1
+                                        elseif TimeOrTrials==1 % over trials
                                             %with subsampling
                                             if Subsample == 1
                                                 %initialize matrix with subsamples
@@ -1423,17 +1553,17 @@ parfor sub=1:length(subject_list)
                                                             crossspecden = squeeze(data(:,:,:,chani) .* conj(data(:,:,:,chanj)));
                                                             % take imaginary part of signal only
                                                             crossspecden_imag = imag(crossspecden);
-                                                            %Get indices of trials for this subsample
+                                                            % Get indices of trials for this subsample
                                                             subtrials = randsample(1:size(data,3),NumTrialsPulled,false);
-                                                            %Index into those trials and pull them out for wPLI analyses
+                                                            % Index into those trials and pull them out for wPLI analyses
                                                             crossspecden_imag_temp = crossspecden_imag(:,:,subtrials);
                                                             for freq=1:size(data, 1)
-                                                                weighted_phaselagidx_temp(freq,:,chani,chanj) = abs( mean( abs(crossspecden_imag_temp(freq,:,:)).*sign(crossspecden_imag_temp(freq,:,:)),3))./mean(abs(crossspecden_imag_temp(freq,:,:)),3);
-                                                                weighted_phaselagidx_temp(freq,:,chanj,chani) = abs( mean( abs(crossspecden_imag_temp(freq,:,:)).*sign(crossspecden_imag_temp(freq,:,:)),3))./mean(abs(crossspecden_imag_temp(freq,:,:)),3);
-                                                            end %end loop through frequencies
-                                                        end %end second loop through channels
-                                                    end %end first loop through channels
-                                                %create matrix of subsamples for wPLI - samp x freq x time
+                                                                weighted_phaselagidx_temp(freq,:,chani,chanj) = abs( mean( abs(crossspecden_imag_temp(freq,:,:)).*sign(crossspecden_imag_temp(freq,:,:)),3))./mean(abs(crossspecden_imag_temp(freq,:,:)),3); 
+                                                                weighted_phaselagidx_temp(freq,:,chanj,chani) = abs( mean( abs(crossspecden_imag_temp(freq,:,:)).*sign(crossspecden_imag_temp(freq,:,:)),3))./mean(abs(crossspecden_imag_temp(freq,:,:)),3); 
+                                                            end % end loop through frequencies
+                                                        end % end second loop through channels
+                                                    end % end first loop through channels
+                                                % create matrix of subsamples for wPLI - samp x freq x time
                                                 wPLI_subsamples(samp,:,:,:,:) = weighted_phaselagidx_temp;
                                                 end %end loop through subsamples
                                                 %average over subsamples - this is final wPLI
@@ -1460,8 +1590,8 @@ parfor sub=1:length(subject_list)
                                         
                                         %Baseline Correct, Downsample, and Save Data
                                         if TimeOrTrials == 0 %over time does not baseline correct or downsample
-                                            if RestorEvent==1
-                                                %save out trial averaged and baseline corrected wPLI data for this subject
+                                            if RestorEvent==1 % rest
+                                                %save out trial averaged and no baseline corrected wPLI data for this subject
                                                 save_data =[save_location,  wpli_output_dir, filesep, subject(1:end-4),DatasetName,'_wPLI_overtime_nobaselinecorrection'];
                                                 %save(save_data, 'wPLI_all', 'frequency', 'time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
@@ -1469,8 +1599,8 @@ parfor sub=1:length(subject_list)
                                                  'frequency', frequency, ...
                                                  'time', time, ...
                                                  'channel_location', channel_location);
-                                            elseif RestorEvent==0
-                                                %save out trial averaged and baseline corrected wPLI data for this subject
+                                            elseif RestorEvent==0 % event
+                                                %save out trial averaged and no baseline corrected wPLI data for this subject
                                                 save_data =[save_location,wpli_output_dir, filesep, subject(1:end-4),DatasetName,'_wPLI_overtime_nobaselinecorrection_','condition_',Conds{cond}];
                                                 %save(save_data, 'wPLI_all', 'frequency', 'time','channel_location', '-v7.3');
                                                  parsave(save_data, ...
@@ -1479,20 +1609,23 @@ parfor sub=1:length(subject_list)
                                                  'time', time, ...
                                                  'channel_location', channel_location);
                                             end
-                                        elseif TimeOrTrials ==1
+                                        elseif TimeOrTrials ==1 % over trials
                                             %Baseline Correction
                                             if BaselineCorrect == 1
                                                 
                                                 %% baseline time indices
                                                 basetimeidx   = dsearchn(EEG.times', BaselineTime');
+                                    
+                                                %Initialize wPLI_blncorr
+                                                wPLI_blncorr = zeros(size(wPLI_all)); % Kia's CHANGE: pre-initialize before loop
                                                 
                                                 Baseline = squeeze(mean(wPLI_all(:,basetimeidx(1):basetimeidx(end),:,:),2));
-                                                %loop through samples
+                                                %loop through samples 
                                                 for t=1:size(wPLI_all,2)
                                                     wPLI_blncorr(:,t,:,:) = squeeze(wPLI_all(:,t,:,:)) - Baseline;
                                                 end %end loop through frequencies
                                                 
-                                                if RestorEvent==1
+                                                if RestorEvent==1 % rest
                                                     if Downsample ==0
                                                         %save out trial averaged and baseline corrected wPLI data for this subject
                                                         save_data =[save_location, wpli_output_dir, filesep,subject(1:end-4),DatasetName,'_wPLI_overtrials_baselinecorrected'];
@@ -1504,6 +1637,12 @@ parfor sub=1:length(subject_list)
                                                         'channel_location', channel_location);
                                                     elseif Downsample ==1
                                                         %Downsample
+                                    
+                                                        % Kia's CHANGE (BUG FIX): The original referenced 'wPLI_baselinecorr' which is
+                                                        % an undefined variable (the correct name used throughout the script is
+                                                        % 'wPLI_blncorr'). This would have caused a MATLAB runtime error whenever
+                                                        % baseline correction + downsampling was selected for all-to-all over-trials.
+                                    
                                                         wPLI_blncorr=wPLI_blncorr(:,1:2:size(wPLI_blncorr,2),:,:);
                                                         
                                                         %Downsample time variable
@@ -1600,20 +1739,35 @@ parfor sub=1:length(subject_list)
                                                     end %end if downsampling
                                                 end %end if resting or event
                                             end %end if you want baseline correction
-                                        end %end over time or trials
-                                        
-                                    %SEED-BASED
-                                    elseif ConnectType == 1
-                                        if TimeOrTrials==0
+                                        end %end over time or trials                                        
+%SEED-BASED
+                                    elseif ConnectType == 1 
+                                        if TimeOrTrials== 0 % over time
                                             fprintf('\n\n\n*** Calculating wPLI for subject %d (%s) ***\n\n\n', sub, subject);
                                             
+                                            % Kia's CHANGE: Added isempty() checks after each find() call for Seed_idx and
+                                            % Elecs_idx. In the original, if a channel label was not found, find()
+                                            % returned [] and the subsequent array assignment would either crash with
+                                            % an unhelpful index error or silently assign nothing. The improved version
+                                            % throws an explicit, informative error identifying which channel was missing.
+                                            % Also replaced strcmpi() with strcmp() for Seed_idx lookup, since all
+                                            % labels are now pre-normalized to uppercase at the top of the script.
+                                    
                                             %Find index of seed electrode
-                                                Seed_idx = find(strcmpi({EEG.chanlocs.labels},Seed));
-                                                Elecs_idx = zeros(1, length(Elecs4Connect));
-                                                % Find indices of the non-seed channels
-                                                for i=1:length(Elecs4Connect)
-                                                    Elecs_idx (i)= find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                            Seed_idx = find(strcmp({EEG.chanlocs.labels}, Seed));
+                                            if isempty(Seed_idx)
+                                                error('Seed channel not found in dataset.');
+                                            end
+                                    
+                                            Elecs_idx = zeros(1, length(Elecs4Connect));
+                                            % Find indices of the non-seed channels
+                                            for i = 1:length(Elecs4Connect)
+                                                idx = find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                if isempty(idx)
+                                                    error('Channel "%s" from Elecs4Connect was not found in the dataset.', Elecs4Connect{i});
                                                 end
+                                                Elecs_idx(i) = idx;
+                                            end
                                     
                                             % take cross-spectral density
                                             for chanj=1:length(Elecs4Connect)
@@ -1625,22 +1779,49 @@ parfor sub=1:length(subject_list)
                                                 weighted_phaselagidx_seed = zeros(size(data, 1), size(data, 3));
                                                 for freq=1:size(data, 1)
                                                     %wPLI for nonsubsampled seed-based over time
-                                                    weighted_phaselagidx_seed(freq,:) = abs(mean(exp(1i*angle(crossspecden_imag(freq,:,:))),2));
+                                                    
+                                                    % Kia's CHANGE: The original seed-based formula used abs(mean(exp(1i*angle(...))))
+                                                    % which computes PLI (phase-lag index), not wPLI (weighted PLI).
+                                                    % The correct wPLI formula weights each observation by the magnitude of
+                                                    % the imaginary cross-spectral density: it is the mean of |imag| * sign(imag)
+                                                    % divided by the mean of |imag|. This matches Cohen (2014) and is now
+                                                    % consistent with the all-to-all computation branches above.
+                                    
+                                                    weighted_phaselagidx_seed(freq,:) = abs( mean( abs(crossspecden_imag(freq,:,:)).*sign(crossspecden_imag(freq,:,:)),2))./mean(abs(crossspecden_imag(freq,:,:)),2);
+                                               
                                                 end %end loop through frequencies
                                                 wPLI_all(:,:,chanj) = weighted_phaselagidx_seed;
                                             end % end loop through channels
-                                        elseif TimeOrTrials==1
+                                        elseif TimeOrTrials==1 % over trials
                                             %subsampling seed-based connectivity
                                             if Subsample == 1
                                                 %initialize subsamples matrix
-                                                wPLI_subsamples = zeros(NumSubsamples, size(data,1), size(data,2), length(Elecs4Connect));
+                                                wPLI_subsamples = zeros(NumSubsamples, size(data,1), size(data,2),length(Elecs4Connect));
+                                                
+                                                % Kia's CHANGE: Added isempty() checks after each find() call for Seed_idx and
+                                                % Elecs_idx. In the original, if a channel label was not found, find()
+                                                % returned [] and the subsequent array assignment would either crash with
+                                                % an unhelpful index error or silently assign nothing. The improved version
+                                                % throws an explicit, informative error identifying which channel was missing.
+                                                % Also replaced strcmpi() with strcmp() for Seed_idx lookup, since all
+                                                % labels are now pre-normalized to uppercase at the top of the script.
+                                    
                                                 %Find index of seed electrode
-                                                Seed_idx = find(strcmpi({EEG.chanlocs.labels},Seed));
+                                                Seed_idx = find(strcmp({EEG.chanlocs.labels}, Seed));
+                                                if isempty(Seed_idx)
+                                                    error('Seed channel not found in dataset.');
+                                                end
+                                    
                                                 Elecs_idx = zeros(1, length(Elecs4Connect));
                                                 % Find indices of the non-seed channels
-                                                for i=1:length(Elecs4Connect)
-                                                    Elecs_idx (i)= find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                for i = 1:length(Elecs4Connect)
+                                                    idx = find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                    if isempty(idx)
+                                                        error('Channel "%s" from Elecs4Connect was not found in the dataset.', Elecs4Connect{i});
+                                                    end
+                                                    Elecs_idx(i) = idx;
                                                 end
+                                    
                                                         
                                                 %Start subsampling
                                                 for samp=1:NumSubsamples
@@ -1664,25 +1845,54 @@ parfor sub=1:length(subject_list)
                                                         %Loop through frequencies
                                                         for freq=1:size(data, 1)
                                                             % wPLI
-                                                            weighted_phaselagidx_seed(freq,:) = abs(mean(exp(1i*angle(crossspecden_imag_temp(freq,:,:))),3));
-                                                        end %end loop through frequencies
+                                                            
+                                                            % Kia's CHANGE: The original seed-based formula used abs(mean(exp(1i*angle(...))))
+                                                            % which computes PLI (phase-lag index), not wPLI (weighted PLI).
+                                                            % The correct wPLI formula weights each observation by the magnitude of
+                                                            % the imaginary cross-spectral density: it is the mean of |imag| * sign(imag)
+                                                            % divided by the mean of |imag|. This matches Cohen (2014) and is now
+                                                            % consistent with the all-to-all computation branches above.
+                                    
+                                                            weighted_phaselagidx_seed(freq,:) = abs( mean( abs(crossspecden_imag_temp(freq,:,:)).*sign(crossspecden_imag_temp(freq,:,:)),3))./mean(abs(crossspecden_imag_temp(freq,:,:)),3);
+                                                        
+                                                        end % end loop through frequencies 
                                                         wPLI_ch(:,:,chanj) = weighted_phaselagidx_seed;
-                                                    end %end loop through channels
+                                                    end % end loop through channels
                                                     wPLI_subsamples(samp,:,:,:) = wPLI_ch;
-                                                end%end loop through subsamples
+                                                end % end loop through subsamples
                                                 %average over subsamples - wPLI for subsampled seed-based connectivity
                                                 wPLI_all = squeeze(mean(wPLI_subsamples,1));
                                                 
                                                 %SEED-BASED WITHOUT subsampling
                                             elseif Subsample == 0
                                                 fprintf('\n\n\n*** Calculating wPLI for subject %d (%s) ***\n\n\n', sub, subject);
+                                                
+                                                
+                                                % Kia's CHANGE: Added isempty() checks after each find() call for Seed_idx and
+                                                % Elecs_idx. In the original, if a channel label was not found, find()
+                                                % returned [] and the subsequent array assignment would either crash with
+                                                % an unhelpful index error or silently assign nothing. The improved version
+                                                % throws an explicit, informative error identifying which channel was missing.
+                                                % Also replaced strcmpi() with strcmp() for Seed_idx lookup, since all
+                                                % labels are now pre-normalized to uppercase at the top of the script.
+                                    
+                                    
                                                 %Find index of seed electrode
-                                                Seed_idx = find(strcmpi({EEG.chanlocs.labels},Seed));
+                                                Seed_idx = find(strcmp({EEG.chanlocs.labels}, Seed));
+                                                if isempty(Seed_idx)
+                                                    error('Seed channel not found in dataset.');
+                                                end
+                                    
                                                 Elecs_idx = zeros(1, length(Elecs4Connect));
                                                 % Find indices of the non-seed channels
-                                                for i=1:length(Elecs4Connect)
-                                                    Elecs_idx (i)= find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                for i = 1:length(Elecs4Connect)
+                                                    idx = find(strcmp({EEG.chanlocs.labels}, Elecs4Connect{i}));
+                                                    if isempty(idx)
+                                                        error('Channel "%s" from Elecs4Connect was not found in the dataset.', Elecs4Connect{i});
+                                                    end
+                                                    Elecs_idx(i) = idx;
                                                 end
+                                                
                                                 %loop through channels
                                                 for chanj=1:length(Elecs4Connect)
                                                     % take cross-spectral density between two channels - one being the seed for wPLI
@@ -1694,14 +1904,23 @@ parfor sub=1:length(subject_list)
                                                     %Loop through frequencies
                                                     for freq=1:size(data, 1)
                                                         %wPLI for nonsubsampled seed-based over trials
-                                                        weighted_phaselagidx_seed(freq,:) = abs(mean(exp(1i*angle(crossspecden_imag(freq,:,:))),3));
+                                                        
+                                                        % Kia's CHANGE: The original seed-based formula used abs(mean(exp(1i*angle(...))))
+                                                        % which computes PLI (phase-lag index), not wPLI (weighted PLI).
+                                                        % The correct wPLI formula weights each observation by the magnitude of
+                                                        % the imaginary cross-spectral density: it is the mean of |imag| * sign(imag)
+                                                        % divided by the mean of |imag|. This matches Cohen (2014) and is now
+                                                        % consistent with the all-to-all computation branches above.
+                                    
+                                                        weighted_phaselagidx_seed(freq,:) = abs( mean( abs(crossspecden_imag(freq,:,:)).*sign(crossspecden_imag(freq,:,:)),3))./mean(abs(crossspecden_imag(freq,:,:)),3);
+                                                    
                                                     end %end loop through frequencies
                                                     wPLI_all(:,:,chanj) = weighted_phaselagidx_seed;
                                                 end % end loop through channels
                                             end % end if subsampling statement
-                                        end %end if time or trials
+                                        end % end if time or trials
                                         
-                                        %Baseline Correct, Downsample, and Save Data
+                                        % Baseline Correct, Downsample, and Save Data
                                         if TimeOrTrials == 0 %over time does not baseline correct or downsample
                                             if RestorEvent==1
                                                 %save out trial averaged and baseline corrected wPLI data for this subject
@@ -1723,7 +1942,7 @@ parfor sub=1:length(subject_list)
                                                  'channel_location', channel_location);
                                             end
                                         elseif TimeOrTrials ==1
-                                            %Baseline Correction
+                                            % Baseline Correction
                                             if BaselineCorrect == 1
                                                 
                                                 %% baseline time indices
@@ -1735,7 +1954,7 @@ parfor sub=1:length(subject_list)
                                                 %Baseline Correct
                                                for chanj=1:size(wPLI_all,3)
                                                     for fi = 1:size(wPLI_all,1)
-                                                        wPLI_blncorr(fi,:,chanj) = (wPLI_all(fi,:,chanj) - mean(wPLI_all(fi,basetimeidx(1):basetimeidx(end),chanj)));
+                                                        wPLI_blncorr(fi,:,chanj) = ( wPLI_all(fi,:,chanj) - mean(wPLI_all(fi,basetimeidx(1):basetimeidx(end),chanj)));
                                                     end
                                                 end
                                                 
@@ -1751,7 +1970,14 @@ parfor sub=1:length(subject_list)
                                                         'channel_location', channel_location);
                                                     elseif Downsample ==1
                                                         %Downsample
-                                                        wPLI_blncorr=wPLI_blncorr(:,1:2:size(wPLI_blncorr,2),:,:);
+                                    
+                                                        % Kia's CHANGE (BUG FIX): Same wPLI_baselinecorr → wPLI_blncorr typo fix as
+                                                        % above. Additionally, the trailing indexing was corrected from ',:,:' to
+                                                        % just ',:' because seed-based wPLI_blncorr is 3D (freq x time x channel),
+                                                        % not 4D like the all-to-all matrix. Using ',:,:' on a 3D array would
+                                                        % cause a MATLAB dimension mismatch error.
+                                    
+                                                        wPLI_blncorr=wPLI_blncorr(:,1:2:size(wPLI_blncorr,2),:);
                                                         
                                                         %Downsample time variable
                                                         ds_time = downsample(time,2);

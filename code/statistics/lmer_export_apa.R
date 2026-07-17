@@ -2,7 +2,7 @@ library(dplyr)
 library(tibble)
 library(flextable)
 
-lmer_export_apa <- function(model, path) {
+lmer_export_apa <- function(model, path, print_formula = FALSE, formula = 'formula') {
   
   output_model <- as.data.frame(summary(model)$coefficients)
   conf_model <- as.data.frame(confint(model))
@@ -30,7 +30,6 @@ lmer_export_apa <- function(model, path) {
   # Print the result
   final_table <- nice_table(result, italics = c(2, 3, 4, 5, 6), col.format.p = 6, note = "Significance codes: * p < .05, ** p < .01, *** p < .001. Degrees of freedom for the fixed effects were estimated using Satterthwaite's approximation.")
 
-    
   final_table <- final_table %>%
     set_header_labels(Beta = "\u03B2") %>%  # Map 'Beta' to Greek symbol
     set_table_properties(width = 1, layout = "autofit") %>%
@@ -39,6 +38,12 @@ lmer_export_apa <- function(model, path) {
     fontsize(size = 10, part = "all") %>%
     fontsize(size = 9, part = "footer")
     # padding(i = ~ grepl("\\*", Parameter), j = 1, padding.left = 20)
+  if (print_formula == TRUE) {
+    formula <- paste(format(formula), collapse = "") 
+    final_table <- final_table %>%
+    set_caption(caption = formula)
+  }
+    
   flextable::save_as_docx(final_table, path = path)
   
 }
@@ -52,6 +57,7 @@ rename_parameters <- function(parameter_vector) {
     "soc" = "Condition",
     "age_m" = "Age",
     "sex" = "Sex",
+    "congruency" = "Congruency",
     "dp_inperson" = "Peer mode",
     "ICPS_OCC_diff_collapsed" = "ICPS posterolateral",
     "ICPS_DLPFC_diff_collapsed" = "ICPS frontolateral",
@@ -59,7 +65,9 @@ rename_parameters <- function(parameter_vector) {
     "ICPS_early_OCC_diff_collapsed" = "ICPS posterolateral",
     "ICPS_early_DLPFC_diff_collapsed" = "ICPS frontolateral",
     "ICPS_early_MOTOR_diff_collapsed" = "ICPS midlateral",
-    "bfne_b_scrdTotal_s1_r1_e1" = "BFNE"
+    "bfne_b_scrdTotal_s1_r1_e1" = "BFNE",
+    "lsasp_scrdTotal_s1_r1_e1" = "LSAS-P",
+    "lsasca_scrdTotal_s1_r1_e1" = "LSAS-CH"
     # Add more mappings here if needed in the future
   )
   
