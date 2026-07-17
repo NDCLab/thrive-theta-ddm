@@ -1,7 +1,7 @@
 # Thrive Theta DDM
 
 ## Project Goal
-The goal of this project is to test the effects of age and social context on error-related theta inter-channel phase synchrony (ICPS) over distinct scalp locations and further to examine how error-related theta ICPS relates to post-error adjustments indexed by the Shrinking Spotlight Diffusion Model (SSP-DDM). This project utilized data from a larger longitudinal adolescent study (THIRVE; R01MH131637; PIs: Dr. G.A. Buzzell & Dr. J.W. Pettit).
+The goal of this project is to test the effects of age and social context on error-related theta inter-channel phase synchrony (ICPS) over distinct scalp locations and further to examine how error-related theta ICPS relates to post-error adjustments indexed by the Shrinking Spotlight Diffusion Model (SSP-DDM). This project utilized data from a larger longitudinal adolescent study (THRIVE; R01MH131637; PIs: Dr. G.A. Buzzell & Dr. J.W. Pettit).
 
 ## Background & Design
 This project uses EEG data of adolescents aged 11-14 who completed an arrow flanker task under varying social contexts (Observed by their peer vs. Alone).
