@@ -24,7 +24,7 @@ rmpath(['/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eegla
 % --- Configuration ---
 % Define the dataset path and session
 dataset_path = '/home/data/NDClab/analyses/thrive-theta-ddm/derivatives/preprocessed/csd_data/'; 
-session = 's1_r1'; 
+session = 's2_r1'; 
 
 % Define where the files actually are
 data_dir = fullfile(dataset_path, session);

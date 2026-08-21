@@ -28,4 +28,3 @@ fi
 
 #singularity exec $sing_image python3 update-tracker-postMADE.py $dataset $session
 
-#echo "updated tracker"

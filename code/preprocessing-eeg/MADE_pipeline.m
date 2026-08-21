@@ -340,6 +340,9 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             end
             display(subj);
             disp('DEBUG 12-1');
+            if strcmp(subj, 'sub-3000261') && strcmp(session, 's2_r1') % that session has two sets of files but one of them is just practice; so we need to ignore it and just treat the reamining as the full recording   
+                corrected = 0;
+            end
             %% Initialize EEG structure, output variables, and report table
             EEG=[]; %initialize eeg structure
             report_table = []; %report table that will be created and written to disk (appended) after processing completes for this participant
@@ -366,7 +369,7 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
                     continue
                 else % all other cases, merge and process
                     disp('DEBUG 14');
-                    if subj == 'sub-3000008' and session = 's1_r1'
+                    if strcmp(subj, 'sub-3000008') && strcmp(session, 's1_r1')
                         EEG = load_and_merge_2(rawdata_location, {'nonsocial'});
                     else
                         EEG = load_and_merge_2(rawdata_location);

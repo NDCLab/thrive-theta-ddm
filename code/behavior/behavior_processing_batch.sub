@@ -18,7 +18,10 @@ pwd; hostname; date
 echo "flurm cpus per task: $SLURM_CPUS_PER_TASK"
 
 source activate base
-conda activate /home/fzaki001/.conda/envs/thrive-env
+#conda init bash
+#conda activate /home/fzaki001/.conda/envs/thrive-env
+source activate /home/fzaki001/.conda/envs/thrive-env
+
 conda run -n thrive-env python -u behavior_analysis.py $"s2_r1"
 
 errors=$(cat ${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out | grep "Error")

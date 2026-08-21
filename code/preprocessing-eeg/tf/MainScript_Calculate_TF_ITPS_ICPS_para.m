@@ -14,7 +14,7 @@
 %%%%% Setting paths %%%%%
 
 main_dir = '/home/data/NDClab/analyses/thrive-theta-ddm'; %directory on the HPC
-%session = 's1_r1';
+%session = 's2_r1';
 tf_output_dir = 'TF';
 itps_output_dir = 'ITPS';
 icps_output_dir = 'ICPS';
@@ -23,7 +23,7 @@ wpli_output_dir = 'wPLI';
 data_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'csd_data' filesep session filesep];
 
 %2. Save Data Location
-save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep session filesep 'resp' filesep 'seed_1_test' filesep];
+save_location = [main_dir filesep 'derivatives' filesep 'preprocessed' filesep 'TF_outputs' filesep session filesep 'resp' filesep 'seed_1' filesep];
 %disp(save_location)
 % Create output folders to save data
 if exist(save_location, 'dir') == 0

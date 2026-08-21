@@ -247,8 +247,8 @@ importDat <- subset(importDat,
                     )
 
 # find only subjects with both valid soc and nonsoc condition and subset them
-thrive_id_soc <- read.csv(sprintf("%sthrive_data_soc.csv", data_dir), header = TRUE)
-thrive_id_nonsoc <- read.csv(sprintf("%sthrive_data_nonsoc.csv", data_dir), header = TRUE)
+thrive_id_soc <- read.csv(sprintf("%sthrive_valid_behav_soc.csv", data_dir), header = TRUE)
+thrive_id_nonsoc <- read.csv(sprintf("%sthrive_valid_behav_nonsoc.csv", data_dir), header = TRUE)
 
 # PASTE THE MOST RECENT FILE HERE MANUALLY
 # already_fitted <- read.csv("fitted_subjects_s1_r1_2025_12_27_23_54_17.csv", header = TRUE)

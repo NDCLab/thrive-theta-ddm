@@ -24,8 +24,7 @@ elif session == "s3_r1":
     exclude_id_list = []
 
 # Find the newest file based on modification time
-new_file_path = max(matching_files, key=os.path.getmtime)
-behavior_df = pd.read_csv(find_newset_file(f"{path}/*summary*{session}*.csv"))
+behavior_df = pd.read_csv(find_newest_file(f"{path}/*summary*{session}*.csv"))
 
 # subset nonsocial valid_data
 behavior_df_nonsoc = behavior_df[[col for col in behavior_df.columns if ("_nonsoc" in col or "sub" in col)]]

@@ -8,8 +8,8 @@ import pandas as pd
 
 session = sys.argv[1]
 data_dir = "/home/data/NDClab/analyses/thrive-theta-ddm/"
-thrive_id_soc = pd.read_csv(f"{data_dir}/derivatives/behavior/{session}/thrive_data_soc.csv")
-thrive_id_nonsoc = pd.read_csv(f"{data_dir}/derivatives/behavior/{session}/thrive_data_nonsoc.csv")
+thrive_id_soc = pd.read_csv(f"{data_dir}/derivatives/behavior/{session}/thrive_valid_behav_soc.csv")
+thrive_id_nonsoc = pd.read_csv(f"{data_dir}/derivatives/behavior/{session}/thrive_valid_behav_nonsoc.csv")
 
 # Define path and pattern
 search_dir = Path(f"{data_dir}/code/ddm/")

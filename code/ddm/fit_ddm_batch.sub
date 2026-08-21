@@ -1,0 +1,22 @@
+#!/bin/bash
+
+#SBATCH --job-name=thrive_ddm         	# job name
+#SBATCH --nodes=1                	# node count
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1               	# total number of tasks across all nodes
+#SBATCH --time=1000:00:00          	# total run time limit (HH:MM:SS)
+#SBATCH --mem=10G                       # real memory per node (use G for gigabytes, M for megabytes)
+#SBATCH --mail-type=end          	# send email when job ends
+#SBATCH --mail-user=fzaki001@fiu.edu       # email address
+#SBATCH --account=iacc_gbuzzell		# SLURM account name (delete these 3 lines if not running a highmem job)
+#SBATCH --partition=highmem1            # partition name (use high memory nodes)
+#SBATCH --qos=highmem1                  # QOS
+#SBATCH --output=%x-%j.out
+
+module load singularity-3.8.2
+
+# Set the working directory
+cd /home/data/NDClab/analyses/thrive-theta-ddm/code/ddm
+
+# Run the R script within the Singularity container using the absolute path
+singularity exec /home/data/NDClab/tools/containers/R/R-4.2.2A/R-4.2.2A.simg Rscript SSP_DDM_fitting.R "$1" "$2" "$3"

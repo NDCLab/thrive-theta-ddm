@@ -123,6 +123,13 @@ all_stimMarkers_eventNums = find(ismember({EEG.event.type},all_stimMarkers));
 % fix "Index exceeds the number of array elements."
 total_eventNums = size(EEG.event,2);
 
+% Pad array to absorb t+1 and t+2 out-of-bounds checks safely
+% this fix is supposed to fix rare occasions when the recording stopped after flanker (i.e., no speech / gtky) AND there were no response in the last trial
+% this fix adds nonsense marker in the end so the check will not error but go through the otherwise block and in the end of the script these nonsense markers are removed
+EEG.event(end+1).type = 'padding';
+EEG.event(end+1).type = 'padding';
+total_eventNums = size(EEG.event,2);
+
 %loop through all stim marker event numbers idented in the all_stimMarkers_eventNums vector and label
 for t = all_stimMarkers_eventNums %t = event numbers stored in all_stimMarkers_eventNums
 
@@ -464,5 +471,8 @@ for t = all_stimMarkers_eventNums %t = event numbers stored in all_stimMarkers_e
     end %end loop through eventNum (stim, resp) for this trial
 
 end %end loop through all_stimMarkers_eventNums (all trials)
+
+% Remove padding to restore original array
+EEG.event(end-1:end) = [];
 
 end

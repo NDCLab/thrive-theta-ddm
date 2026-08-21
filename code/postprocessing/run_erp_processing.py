@@ -17,7 +17,7 @@ slurm_scripts = [
 for script in slurm_scripts:
     for ses in sessions:
         for cond in laplacian:
-            print(f"Submitting job for Subject: {ses}, Condition: {cond}")
+            print(f"Submitting job for Subject: {ses}, Laplacian: {cond}")
         
             # The command: sbatch script_name arg1 arg2
             cmd = ["sbatch", script, ses, cond]
