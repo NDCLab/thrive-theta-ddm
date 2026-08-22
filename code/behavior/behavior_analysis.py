@@ -256,7 +256,8 @@ for sub in subjects:
             processing_log["skipped_percent"+prefix].append(np.round(condition_data["no_resp"].sum() / len(condition_data) * 100, 3))
             processing_log["invalid_rt_percent"+prefix].append(np.round((1 - (sum(condition_data["valid_rt"]) / len(condition_data))) * 100, 3))
             condition_data = condition_data[(condition_data["valid_rt"] == 1)]
-            processing_log["6_or_more_err"+prefix].append(1 if len(condition_data[(condition_data["no_resp"] == 0) & (condition_data["accuracy"] == 0)]) >= 6 else 0)
+#            processing_log["6_or_more_err"+prefix].append(1 if len(condition_data[(condition_data["no_resp"] == 0) & (condition_data["accuracy"] == 0)]) >= 6 else 0)
+            processing_log["6_or_more_err"+prefix].append(1 if len(condition_data[(condition_data["no_resp"] == 0) & (condition_data["accuracy"] == 0) & (condition_data["congruent"] == 0)]) >= 6 else 0)
             processing_log["acc"+prefix].append(np.round(condition_data.accuracy.mean(), 3))
             processing_log["acc_con"+prefix].append(np.round(condition_data[condition_data["congruent"] == 1].accuracy.mean(), 3))
             processing_log["acc_incon"+prefix].append(np.round(condition_data[condition_data["congruent"] == 0].accuracy.mean(), 3))
