@@ -107,6 +107,18 @@ rawdata_location_parent = char(rawdata_location_parent);
 %channel_locations = loadbvef('/home/data/NDClab/datasets/thrive-dataset/code/thrive_eeg/chan_locs_files/electrode_locs_files/CACS-128-X7-FIXED-64only.bvef');
 %channel_locations = loadbvef(strcat(main_dir, '/code/eeg_preprocessing/chan_locs_files/electrode_locs_files/CACS-128-X7-FIXED-64only.bvef'));
 channel_locations = loadbvef('/home/data/NDClab/tools/lab-devOps/scripts/MADE_pipeline_standard/eeg_preprocessing/chan_locs_files/electrode_locs_files/CACS-128-X7-FIXED-64only.bvef');
+ref_channel_name_str = '1';
+
+% IMPORTANT NOTE, THE CODE BELOW STRICTLY ASSUMES THAT THE .BVEF CHANLOC FILE CONTAINS GND AT 1ST POSITION AND THEREFIRE IT NEEDS TO BE REMOVED
+%delete ground from newChanLocs
+modNewChanlocs = channel_locations(2:end);
+ref_idx = find(strcmp({modNewChanlocs.labels}, ref_channel_name_str));
+
+if isempty(ref_idx)
+    error('Reference channel "%s" not found in chanlocs.', ref_channel_name_str);
+elseif length(ref_idx) > 1
+    error('Multiple channels match "%s".', ref_channel_name_str);
+end
 
 % STIMULUS TRIGGERS
 % practice congruent right: 1
@@ -196,6 +208,13 @@ save_interim_result = 1; % 0 = NO (Do not save) 1 = YES (save interim results)
 % 16. How do you want to save your data? .set or .mat
 output_format = 1; % 1 = .set (EEGLAB data structure), 2 = .mat (Matlab data structure)
 
+% 17. Does your recording have GSR and sync channels?
+expected_gsr_name = 'GSR';
+expect_gsr_present = true;
+
+expected_sync_name = 'sync';
+expect_sync_present = true;
+
 % ********* no need to edit beyond this point for EGI .mff data **********
 % ********* for non-.mff data format edit data import function ***********
 % ********* below using relevant data import plugin from EEGLAB **********
@@ -232,8 +251,8 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
         end
         % display(sprintf('DATAFILE NAMES: %s', datafile_names));
         % Enter the path of the folder where you want to save the processed data
-        output_location = fullfile(main_dir, 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
-        % output_location = fullfile('/home/data/NDClab/analyses/thrive-theta-ddm/', 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
+        % output_location = fullfile(main_dir, 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
+        output_location = fullfile('/home/data/NDClab/analyses/thrive-theta-ddm/', 'derivatives', 'preprocessed', subjects_to_process(file_locater_counter), session, 'eeg' );
         % update the output_location
         output_location = char(output_location);
         disp('DEBUG 2');
@@ -396,25 +415,56 @@ parfor file_locater_counter = 1:length(subjects_to_process) %1:4
             end
 
             %make a copy of GSR and sync channels, then delete from eeg structure
+            try
+                % 1. Evaluate and Process GSR
+                if expect_gsr_present
+                    gsr_idx = find(strcmp({EEG.chanlocs.labels}, expected_gsr_name));
+         
+                    if isempty(gsr_idx)
+                        error('Expected channel "%s" was not found.', expected_gsr_name);
+                    else
+                        gsrChan = EEG.data(gsr_idx, :);
+                        EEG = pop_select(EEG, 'nochannel', gsr_idx);
+                        EEG = eeg_checkset(EEG);
+                        fprintf('Expected channel "%s" found at position %d and deleted.\n', expected_gsr_name, gsr_idx);
+                    end
+                end
 
-            gsrChan = EEG.data(64, :);
-            EEG = pop_select( EEG,'nochannel', 64);
-            EEG = eeg_checkset( EEG );
+                % 2. Evaluate and Process Sync
+                if expect_sync_present
+                    sync_idx = find(strcmp({EEG.chanlocs.labels}, expected_sync_name));
+         
+                    if isempty(sync_idx)
+                        error('Expected channel "%s" was not found.', expected_sync_name);
+                    else
+                        syncChan = EEG.data(sync_idx, :);
+                        EEG = pop_select(EEG, 'nochannel', sync_idx);
+                        EEG = eeg_checkset(EEG);
+                        fprintf('Expected channel "%s" found at position %d and deleted.\n', expected_sync_name, sync_idx);
+                    end
+                end
 
-            syncChan = EEG.data(64, :);
-            EEG = pop_select( EEG,'nochannel', 64);
-            EEG = eeg_checkset( EEG );
-            %[ALLEEG EEG CURRENTSET] = eeg_store(ALLEEG, EEG, CURRENTSET);
+            catch ME
+                % Catches ONLY the missing-channel errors defined above
+                warning('Channel check failed for this subject: %s Skipping rest of pipeline.', ME.message);
+                continue; % Skips all the complex code below and jumps to the next subject iteration
+            end
 
+	    % old deprecated logic; currently replaced with more robust code right below
             %add in ref channels
-            origData = EEG.data;
-            [origData_NumRows, origData_NumCols] = size(origData);
-            EEG.data = NaN(origData_NumRows+1, origData_NumCols);
-            EEG.data(1,:) = 0; %add ref as zeros
-            EEG.data(2:end,:) = origData; %copy over orig EEG data
+            % origData = EEG.data;
+            % [origData_NumRows, origData_NumCols] = size(origData);
+            % EEG.data = NaN(origData_NumRows+1, origData_NumCols);
+            % EEG.data(1,:) = 0; %add ref as zeros
+            % EEG.data(2:end,:) = origData; %copy over orig EEG data
             %%%
-            %delete ground from newChanLocs
-            modNewChanlocs = channel_locations(2:end);
+
+	    origData = EEG.data;
+	    [origData_NumRows, origData_NumCols] = size(origData);
+	    EEG.data = NaN(origData_NumRows+1, origData_NumCols);
+	    EEG.data(1:ref_idx-1, :)   = origData(1:ref_idx-1, :); % channels before ref
+	    EEG.data(ref_idx, :)       = 0;                        % add ref as zeros
+	    EEG.data(ref_idx+1:end, :) = origData(ref_idx:end, :);  % channels after ref
 
             %replace chanlocs with
             EEG.chanlocs = modNewChanlocs;

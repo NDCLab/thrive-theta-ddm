@@ -511,6 +511,7 @@ for session in sessions:
                     new_state_survey_df.loc[i, f"{c}_i{item}_{session}_nonsoc"] = np.nan
     
     new_state_survey_df = new_state_survey_df.dropna(how="all", subset = new_state_survey_df.columns[1:]).reset_index(drop=True)
+    state_surveys = state_surveys.dropna(how="all", subset = state_surveys.columns[1:]).reset_index(drop=True)
     state_surveys = new_state_survey_df.merge(state_surveys[[i for i in state_surveys.columns if not ("initstatec" in i or "posttaske" in i or "first_soc" in i)]], on="sub", how="left")
     redcap_data = redcap_data.merge(state_surveys, on="sub", how="outer")
     
@@ -553,7 +554,7 @@ for session in sessions:
     
     cols_dyadb = [f"dyadb_i{item}_{session}_e1" for item in items_to_exclude]
     
-    if cols_init:
+    if cols_dyadb:
         redcap_data.loc[rows_dyadb, cols_dyadb] = np.nan
         print(f"Specific clean: Wiped 'dyadb' columns for subjects {exclude_subset_dyadb}.")
     else:
@@ -790,13 +791,11 @@ for session in sessions:
             continue
         
         # --- 3. Check Post-Error / Post-Correct (NEW) ---
-        # Handled before generic _err/_corr to ensure correct base extraction
         if '_posterr' in c or '_postcorr' in c:
             is_err = '_posterr' in c
             
             if '_soc' in c:
                 soc = 1
-                # Remove suffixes to get base (e.g., 'a_posterr_soc' -> 'a')
                 base = c.replace('_soc', '').replace('_posterr', '').replace('_postcorr', '')
             elif '_nonsoc' in c:
                 soc = 0
@@ -804,6 +803,11 @@ for session in sessions:
             else:
                 continue
                 
+            # ADD THIS LINE: Distinguish post-trial bases from overall bases
+            base = base + "_post_trial" 
+            
+            if base == 'acc_post_trial': base = 'accuracy_score_post_trial' # Collision protection just in case
+    
             col_map[c] = {'type': 'crossed', 'base': base, 'soc': soc, 'acc': 0 if is_err else 1}
             continue
     
@@ -840,7 +844,7 @@ for session in sessions:
                 base = c.replace('_nonsoc', '').replace('_err', '').replace('_corr', '')
             else:
                 continue
-            
+            if base == 'acc': base = 'accuracy_score'
             col_map[c] = {'type': 'crossed', 'base': base, 'soc': soc, 'acc': 0 if is_err else 1}
             continue
     

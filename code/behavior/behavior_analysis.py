@@ -71,6 +71,10 @@ summary_columns = [
             "n_trials", "invalid_rt_percent", "skipped_percent",
             "acc", "acc_con", "acc_incon", "rt_con", "rt_incon", "rt_corr", "rt_err",
             "rt_con_log", "rt_incon_log", "rt_corr_log", "rt_err_log",
+            "rt_posterr", "rt_postcorr", "rt_log_posterr", "rt_log_postcorr", "acc_posterr", "acc_postcorr",
+            "acc_incon_posterr", "acc_con_posterr", "acc_incon_postcorr", "acc_con_postcorr",
+            "rt_incon_posterr", "rt_con_posterr", "rt_incon_postcorr", "rt_con_postcorr",
+            "rt_incon_log_posterr", "rt_con_log_posterr", "rt_incon_log_postcorr", "rt_con_log_postcorr",
             "pes", "pea", "peri_acc", "peri_rt", "6_or_more_err",
             ]
 processing_log["sub"] = []
@@ -270,57 +274,103 @@ for sub in subjects:
             processing_log["rt_err"+prefix].append(np.round(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 0)]["rt"].mean() * 1000, 3))
             processing_log["rt_err_log"+prefix].append(np.round(np.log(condition_data[(condition_data["congruent"] == 0) & (condition_data["accuracy"] == 0)]["rt"]).mean() * 1000, 3))
             condition_data = condition_data[(condition_data["pre_valid_rt"] == 1) & (condition_data["pre_extra_resp"] == 0) & (condition_data["pre_no_resp"] == 0)]
-            processing_log["pes"+prefix].append(np.round(
-                np.log(
+
+            # Post-Error Slowing (PES) Measures
+            rt_posterr = condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 0) &\
+                    (condition_data["pre_congruent"] == 0)]["rt"].mean()
+            processing_log["rt_posterr"+prefix].append(rt_posterr)
+
+            rt_postcorr = condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 1) &\
+                    (condition_data["pre_congruent"] == 0)]["rt"].mean()
+            processing_log["rt_postcorr"+prefix].append(rt_postcorr)
+
+            rt_log_posterr = np.log(
                     condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 0) &\
                     (condition_data["pre_congruent"] == 0)]["rt"]
-                ).mean()\
-                - np.log(
+                ).mean()
+            processing_log["rt_log_posterr"+prefix].append(rt_log_posterr)
+            
+            rt_log_postcorr = np.log(
                     condition_data[(condition_data["accuracy"] == 1) & (condition_data["pre_accuracy"] == 1) &\
                     (condition_data["pre_congruent"] == 0)]["rt"]
-                ).mean(), 5
-            ))
-            processing_log["pea"+prefix].append(np.round(
-                 condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["pre_congruent"] == 0)]["accuracy"].mean()\
-                 - condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["pre_congruent"] == 0)]["accuracy"].mean(), 5
-             ))
+                ).mean()
+            processing_log["rt_log_postcorr"+prefix].append(rt_log_postcorr)
+            
+            processing_log["pes"+prefix].append(np.round(rt_log_posterr - rt_log_postcorr, 5))
 
+            # Post-Error Accuracy (PEA) Measures
+            acc_posterr = condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
+            processing_log["acc_posterr"+prefix].append(acc_posterr)
+
+            acc_postcorr = condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
+            processing_log["acc_postcorr"+prefix].append(acc_postcorr)
+
+            processing_log["pea"+prefix].append(np.round(acc_posterr - acc_postcorr, 5))
+
+            # Post-Error Reduction of Interference in Accuracy (PERI-Acc) Measures
+            acc_incon_posterr = condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 0) &\
+                     (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
+            processing_log["acc_incon_posterr"+prefix].append(acc_incon_posterr)
+            
+            acc_con_posterr = condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 1) &\
+                     (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
+            processing_log["acc_con_posterr"+prefix].append(acc_con_posterr)
+            
+            acc_incon_postcorr = condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 0) &\
+                     (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
+            processing_log["acc_incon_postcorr"+prefix].append(acc_incon_postcorr)
+            
+            acc_con_postcorr = condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 1) &\
+                     (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
+            processing_log["acc_con_postcorr"+prefix].append(acc_con_postcorr)          
+            
             processing_log["peri_acc"+prefix].append(np.round(
-                 (
-                     condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 0) &\
-                     (condition_data["pre_congruent"] == 0)]["accuracy"].mean()\
-                  - condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 1) &\
-                     (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
-                 )\
-                 - (
-                     condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 0) &\
-                     (condition_data["pre_congruent"] == 0)]["accuracy"].mean()\
-                  - condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 1) &\
-                     (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
-                 ), 5
+                ((acc_incon_posterr - acc_con_posterr) - (acc_incon_postcorr - acc_con_postcorr)), 5
              ))
 
-            processing_log["peri_rt"+prefix].append(np.round(
-                 (
-                     np.log(
+            # Post-Error Reduction of Interference in RT (PERI-RT) Measures
+            rt_incon_posterr = condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 0) &\
+                         (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean()
+            processing_log["rt_incon_posterr"+prefix].append(rt_incon_posterr)
+            
+            rt_con_posterr = condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 1) &\
+                      (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean()
+            processing_log["rt_con_posterr"+prefix].append(rt_con_posterr)
+            
+            rt_incon_postcorr = condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 0) &\
+                     (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean()
+            processing_log["rt_incon_postcorr"+prefix].append(rt_incon_postcorr)
+            
+            rt_con_postcorr = condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 1) &\
+                      (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"].mean()
+            processing_log["rt_con_postcorr"+prefix].append(rt_con_postcorr)
+
+            rt_incon_log_posterr = np.log(
                      condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 0) &\
                          (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]
-                     ).mean()\
-                  - np.log(
+            ).mean()
+            processing_log["rt_incon_log_posterr"+prefix].append(rt_incon_log_posterr)
+            
+            rt_con_log_posterr = np.log(
                       condition_data[(condition_data["pre_accuracy"] == 0) & (condition_data["congruent"] == 1) &\
                       (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]
-                  ).mean()
-                 )\
-                 - (
-                     np.log(
+            ).mean()
+            processing_log["rt_con_log_posterr"+prefix].append(rt_con_log_posterr)
+            
+            rt_incon_log_postcorr = np.log(
                      condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 0) &\
                      (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]
-                     ).mean()\
-                  - np.log(
+            ).mean()
+            processing_log["rt_incon_log_postcorr"+prefix].append(rt_incon_log_postcorr)
+            
+            rt_con_log_postcorr = np.log(
                       condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 1) &\
                       (condition_data["pre_congruent"] == 0) & (condition_data["accuracy"] == 1)]["rt"]
-                  ).mean()
-                   ), 5
+            ).mean()
+            processing_log["rt_con_log_postcorr"+prefix].append(rt_con_log_postcorr)
+
+            processing_log["peri_rt"+prefix].append(np.round(
+                 ((rt_incon_log_posterr - rt_con_log_posterr) - (rt_incon_log_postcorr - rt_con_log_postcorr)), 5
              ))
 
     # print([len(processing_log[i]) for i in list(processing_log.keys())]) 
