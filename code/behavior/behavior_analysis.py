@@ -76,6 +76,8 @@ summary_columns = [
             "rt_incon_posterr", "rt_con_posterr", "rt_incon_postcorr", "rt_con_postcorr",
             "rt_incon_log_posterr", "rt_con_log_posterr", "rt_incon_log_postcorr", "rt_con_log_postcorr",
             "pes", "pea", "peri_acc", "peri_rt", "6_or_more_err",
+            "acc_interference_posterr", "acc_interference_postcorr",
+            "rt_interference_posterr", "rt_interference_postcorr",
             ]
 processing_log["sub"] = []
 processing_log["success"] = []
@@ -323,6 +325,9 @@ for sub in subjects:
             acc_con_postcorr = condition_data[(condition_data["pre_accuracy"] == 1) & (condition_data["congruent"] == 1) &\
                      (condition_data["pre_congruent"] == 0)]["accuracy"].mean()
             processing_log["acc_con_postcorr"+prefix].append(acc_con_postcorr)          
+
+            processing_log["acc_interference_posterr"+prefix].append((acc_incon_posterr - acc_con_posterr))
+            processing_log["acc_interference_postcorr"+prefix].append((acc_incon_postcorr - acc_con_postcorr))
             
             processing_log["peri_acc"+prefix].append(np.round(
                 ((acc_incon_posterr - acc_con_posterr) - (acc_incon_postcorr - acc_con_postcorr)), 5
@@ -369,6 +374,9 @@ for sub in subjects:
             ).mean()
             processing_log["rt_con_log_postcorr"+prefix].append(rt_con_log_postcorr)
 
+            processing_log["rt_interference_posterr"+prefix].append((rt_incon_log_posterr - rt_con_log_posterr))
+            processing_log["rt_interference_postcorr"+prefix].append((rt_incon_log_postcorr - rt_con_log_postcorr))
+            
             processing_log["peri_rt"+prefix].append(np.round(
                  ((rt_incon_log_posterr - rt_con_log_posterr) - (rt_incon_log_postcorr - rt_con_log_postcorr)), 5
              ))
